@@ -1,10 +1,14 @@
-import { FreqWavePopup } from "../components/eq/freqwave-popup";
+import { FreqWavePopup } from "../components/eq/FreqWavePopup";
 
 export default function Popup() {
     return (
         <div
-            className="bg-[#202020] overflow-hidden select-none flex items-center justify-center"
-            style={{ width: "640px", height: "640px" }}>
+            style={{
+                "--accent": "#a9e80c",
+                width: "520px",
+                height: "570px",
+            } as React.CSSProperties}
+        >
             <FreqWavePopup />
         </div>
     );

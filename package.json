@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@crxjs/vite-plugin": "^2.4.0",
+    "@fontsource/archivo": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@tailwindcss/vite": "^4.3.0",
     "@types/chrome": "^0.1.42",
     "clsx": "^2.1.1",
