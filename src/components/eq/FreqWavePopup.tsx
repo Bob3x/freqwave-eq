@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
     EngineState,
     QueryStateMsg,
@@ -9,6 +9,12 @@ import type {
     StateChangedMsg,
     StopCaptureMsg,
 } from "../../messages/types";
+import {
+    DEFAULT_SETTINGS,
+    STORAGE_KEY,
+    type FreqWaveSettings,
+    type PresetName,
+} from "../../shared/settings";
 import { BandFader } from "./BandFader";
 import { Knob } from "./Knob";
 import { Spectrum } from "./Spectrum";
@@ -27,27 +33,20 @@ const PRESETS = {
     LEVELER:  [ 1,  1,  1,  0,  0,  1,  1,  1],
     CLARITY:  [-1,  0,  1,  2,  3,  5,  6,  4],
 } as const;
-type PresetName = keyof typeof PRESETS;
+
 const PRESET_ORDER: PresetName[] = ["OFF", "DIALOGUE", "LEVELER", "CLARITY"];
 
 // ---------------------------------------------------------------------------
-// dB mapping (unchanged from previous wiring)
+// Message senders — knobs emit dB directly, no intermediate mapping
 // ---------------------------------------------------------------------------
 
-function masterPctToDb(pct: number): number { return (pct / 100) * 60 - 60; }
-function preampPctToDb(pct: number): number { return (pct / 100) * 36 - 24; }
-
-// ---------------------------------------------------------------------------
-// Message senders (module-level — no closure over component state)
-// ---------------------------------------------------------------------------
-
-function sendMasterGain(pct: number) {
-    const msg: SetMasterGainMsg = { kind: "SET_MASTER_GAIN", gainDb: masterPctToDb(pct) };
+function sendMasterGain(db: number) {
+    const msg: SetMasterGainMsg = { kind: "SET_MASTER_GAIN", gainDb: db };
     chrome.runtime.sendMessage(msg).catch(() => { /* engine may be idle */ });
 }
 
-function sendPreampGain(pct: number) {
-    const msg: SetPreampGainMsg = { kind: "SET_PREAMP_GAIN", gainDb: preampPctToDb(pct) };
+function sendPreampGain(db: number) {
+    const msg: SetPreampGainMsg = { kind: "SET_PREAMP_GAIN", gainDb: db };
     chrome.runtime.sendMessage(msg).catch(() => { /* engine may be idle */ });
 }
 
@@ -61,18 +60,53 @@ function sendBandGain(bandIndex: number, gainDb: number) {
 // ---------------------------------------------------------------------------
 
 export function FreqWavePopup() {
-    // Engine state (existing wiring — unchanged)
-    const [engineState, setEngineState]       = useState<EngineState>("idle");
+    // Engine state — not persisted (capture auto-stops on Chrome restart)
+    const [engineState, setEngineState]           = useState<EngineState>("idle");
     const [capturedHostname, setCapturedHostname] = useState<string | null>(null);
-    const [statusError, setStatusError]       = useState<string | null>(null);
+    const [statusError, setStatusError]           = useState<string | null>(null);
 
-    // Control state (new)
-    const [master, setMaster] = useState(65);
-    const [preamp, setPreamp] = useState(40);
-    const [bands,  setBands]  = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
-    const [preset, setPreset] = useState<PresetName | null>(null);
+    // EQ settings — null while loading from storage (avoids flash of wrong defaults)
+    const [settings, setSettings] = useState<FreqWaveSettings | null>(null);
 
-    // Sync engine state on mount
+    // Storage persistence refs
+    const settingsLoadedRef = useRef(false);     // skip write-back on the initial load
+    const latestSettings    = useRef<FreqWaveSettings | null>(null);  // for flush-on-close
+
+    // ── Load settings from chrome.storage.sync on mount ──────────────────────
+    useEffect(() => {
+        chrome.storage.sync.get(STORAGE_KEY, (result) => {
+            const stored = result[STORAGE_KEY] as FreqWaveSettings | undefined;
+            setSettings(stored ?? DEFAULT_SETTINGS);
+        });
+    }, []);
+
+    // ── Persist settings on change (debounced 300 ms) ────────────────────────
+    useEffect(() => {
+        if (settings === null) return;
+        latestSettings.current = settings;
+        if (!settingsLoadedRef.current) {
+            // First fire = initial load; mark loaded but don't write back
+            settingsLoadedRef.current = true;
+            return;
+        }
+        const timer = setTimeout(() => {
+            chrome.storage.sync.set({ [STORAGE_KEY]: settings });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [settings]);
+
+    // ── Flush immediately when popup window closes ────────────────────────────
+    useEffect(() => {
+        const flush = () => {
+            if (document.visibilityState === "hidden" && latestSettings.current !== null) {
+                chrome.storage.sync.set({ [STORAGE_KEY]: latestSettings.current });
+            }
+        };
+        document.addEventListener("visibilitychange", flush);
+        return () => document.removeEventListener("visibilitychange", flush);
+    }, []);
+
+    // ── Engine state sync on mount ────────────────────────────────────────────
     useEffect(() => {
         const msg: QueryStateMsg = { kind: "QUERY_STATE" };
         chrome.runtime.sendMessage(msg, (res) => {
@@ -83,7 +117,7 @@ export function FreqWavePopup() {
         });
     }, []);
 
-    // Stay in sync while popup is open
+    // ── Stay in sync while popup is open ─────────────────────────────────────
     useEffect(() => {
         const listener = (message: unknown) => {
             const msg = message as StateChangedMsg;
@@ -96,7 +130,8 @@ export function FreqWavePopup() {
         return () => chrome.runtime.onMessage.removeListener(listener);
     }, []);
 
-    // Badge click — unchanged logic
+    // ── Handlers ──────────────────────────────────────────────────────────────
+
     const handleBadgeClick = useCallback(() => {
         if (engineState === "starting") return;
         if (engineState === "active") {
@@ -113,32 +148,43 @@ export function FreqWavePopup() {
         }
     }, [engineState]);
 
-    // Preset apply — sets all 8 bands and sends messages
     const applyPreset = useCallback((name: PresetName) => {
-        const values = [...PRESETS[name]];
-        setBands(values);
-        setPreset(name);
+        const values = [...PRESETS[name]] as number[];
+        setSettings(s => ({ ...(s ?? DEFAULT_SETTINGS), bands: values, preset: name }));
         values.forEach((db, i) => sendBandGain(i, db));
     }, []);
 
-    // Zero EQ — flattens all bands + resets knobs to initial positions
     const handleZeroEQ = useCallback(() => {
         const zeros = [0, 0, 0, 0, 0, 0, 0, 0];
-        setBands(zeros);
-        setPreset("OFF");
+        setSettings(() => ({ master: 0, preamp: 0, bands: zeros, preset: "OFF" }));
         zeros.forEach((_, i) => sendBandGain(i, 0));
-        setMaster(65);
-        setPreamp(40);
-        sendMasterGain(65);
-        sendPreampGain(40);
+        sendMasterGain(0);
+        sendPreampGain(0);
     }, []);
 
-    // Band change from fader
+    const handleMasterChange = useCallback((db: number) => {
+        setSettings(s => ({ ...(s ?? DEFAULT_SETTINGS), master: db }));
+        sendMasterGain(db);
+    }, []);
+
+    const handlePreampChange = useCallback((db: number) => {
+        setSettings(s => ({ ...(s ?? DEFAULT_SETTINGS), preamp: db }));
+        sendPreampGain(db);
+    }, []);
+
     const handleBandChange = useCallback((i: number, db: number) => {
-        setBands(prev => { const n = [...prev]; n[i] = db; return n; });
-        setPreset(null);
+        setSettings(s => {
+            const newBands = [...(s?.bands ?? DEFAULT_SETTINGS.bands)];
+            newBands[i] = db;
+            return { ...(s ?? DEFAULT_SETTINGS), bands: newBands, preset: null };
+        });
         sendBandGain(i, db);
     }, []);
+
+    // ── Guard: don't render until settings are loaded from storage ────────────
+    if (settings === null) return null;
+
+    const { master, preamp, bands, preset } = settings;
 
     // ---------------------------------------------------------------------------
     // Badge visuals
@@ -244,15 +290,15 @@ export function FreqWavePopup() {
                 {/* Knobs */}
                 <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexShrink: 0 }}>
                     <Knob
-                        label="Master Volume" subLabel="DB GAIN"
+                        label="Master Volume"
                         size="large" defaultValue={master}
-                        onChange={v => { setMaster(v); sendMasterGain(v); }}
+                        onChange={handleMasterChange}
                     />
                     <div style={{ paddingTop: "18px" }}>
                         <Knob
-                            label="Pre-Amp" subLabel="DB BOOST"
+                            label="Pre-Amp"
                             size="small" defaultValue={preamp}
-                            onChange={v => { setPreamp(v); sendPreampGain(v); }}
+                            onChange={handlePreampChange}
                         />
                     </div>
                 </div>
