@@ -15,6 +15,8 @@ import type {
 let engineState: EngineState = "idle";
 let capturedTabId: number | null = null;
 let capturedHostname: string | null = null;
+let capturedWindowId: number | null = null;
+let savedWindowState: string | null = null;
 
 // Whether we've ever created the offscreen document this SW lifetime.
 // The doc is persistent (not destroyed on STOP), so once true it stays true.
@@ -36,10 +38,12 @@ interface PersistedState {
     engineState: EngineState;
     capturedTabId: number | null;
     capturedHostname: string | null;
+    capturedWindowId: number | null;
+    savedWindowState: string | null;
 }
 
 function persistState(): void {
-    const data: PersistedState = { engineState, capturedTabId, capturedHostname };
+    const data: PersistedState = { engineState, capturedTabId, capturedHostname, capturedWindowId, savedWindowState };
     chrome.storage.session.set({ [SESSION_KEY]: data }).catch(() => { /* ok */ });
 }
 
@@ -57,6 +61,8 @@ const stateRestored: Promise<void> = chrome.storage.session
         engineState = saved.engineState;
         capturedTabId = saved.capturedTabId;
         capturedHostname = saved.capturedHostname;
+        capturedWindowId = saved.capturedWindowId ?? null;
+        savedWindowState = saved.savedWindowState ?? null;
 
         // If we were active, the offscreen doc is still alive.
         if (engineState === "active") offscreenDocCreated = true;
@@ -129,6 +135,8 @@ chrome.runtime.onMessage.addListener(
                 engineState = "idle";
                 capturedTabId = null;
                 capturedHostname = null;
+                capturedWindowId = null;
+                savedWindowState = null;
                 broadcastState();
                 return false;
 
@@ -157,6 +165,7 @@ chrome.runtime.onMessage.addListener(
                         capturedHostname = activeTab.url
                             ? new URL(activeTab.url).hostname
                             : null;
+                        capturedWindowId = activeTab.windowId ?? null;
                         broadcastState();
 
                         const streamId = await chrome.tabCapture.getMediaStreamId({
@@ -189,6 +198,8 @@ chrome.runtime.onMessage.addListener(
                 engineState = "idle";
                 capturedTabId = null;
                 capturedHostname = null;
+                capturedWindowId = null;
+                savedWindowState = null;
                 broadcastState();
                 sendResponse({ ok: true });
                 return false;
@@ -208,6 +219,40 @@ chrome.runtime.onMessage.addListener(
         }
     }
 );
+
+// ---------------------------------------------------------------------------
+// Fullscreen bridge
+// When a captured tab's content calls requestFullscreen(), Chrome fires
+// onStatusChanged with fullscreen:true but does NOT enter fullscreen itself —
+// the capturing extension must call chrome.windows.update to drive it.
+// ---------------------------------------------------------------------------
+
+chrome.tabCapture.onStatusChanged.addListener(async (info) => {
+    if (info.status !== "active") return;
+    if (info.tabId !== capturedTabId) return;
+    await handleFullscreenChange(info.fullscreen ?? false);
+});
+
+async function handleFullscreenChange(fullscreen: boolean): Promise<void> {
+    if (capturedWindowId == null) return;
+    try {
+        if (fullscreen) {
+            const win = await chrome.windows.get(capturedWindowId);
+            if (win.state !== "fullscreen") {
+                savedWindowState = win.state ?? "normal";
+                persistState();
+                await chrome.windows.update(capturedWindowId, { state: "fullscreen" });
+            }
+        } else if (savedWindowState !== null) {
+            // Only restore if we drove the fullscreen entry
+            await chrome.windows.update(capturedWindowId, { state: savedWindowState as chrome.windows.WindowState });
+            savedWindowState = null;
+            persistState();
+        }
+    } catch {
+        // Window may have been closed; ignore
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Install / update

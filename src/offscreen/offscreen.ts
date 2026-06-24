@@ -21,7 +21,7 @@ const BANDS: { frequency: number; type: BiquadFilterType }[] = [
 const PEAKING_Q = 1.41;
 
 // ---------------------------------------------------------------------------
-// AudioContext — one per offscreen doc lifetime
+// AudioContext + output element — one per offscreen doc lifetime
 // ---------------------------------------------------------------------------
 
 const audioCtx = new AudioContext();
