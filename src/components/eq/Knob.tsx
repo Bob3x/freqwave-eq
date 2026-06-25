@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
-const ACCENT   = "var(--accent, #a9e80c)";
+const ACCENT   = "var(--accent, #84e80c)";
 const MIN_DB   = -12;
 const MAX_DB   =  12;
 const HALF_DB  = (MAX_DB - MIN_DB) / 2; // 12
@@ -91,11 +91,14 @@ export function Knob({ label, size, defaultValue = 0, onChange }: KnobProps) {
         ? "inset 0 2px 3px rgba(255,255,255,.06),inset 0 -8px 16px rgba(0,0,0,.6),0 10px 22px -8px rgba(0,0,0,.85)"
         : "inset 0 2px 3px rgba(255,255,255,.06),inset 0 -6px 12px rgba(0,0,0,.6),0 8px 16px -6px rgba(0,0,0,.85)";
 
-    // Arc color: fixed hue (73°, same as accent #a9e80c), lightness 10%→48% as |dB| increases.
-    // Avoids opacity-over-dark hue shift while keeping the exact accent hue.
-    const arcT          = Math.min(1, Math.abs(defaultValue) / 12);
-    const arcStroke     = `hsl(73,91%,${(10 + 38 * arcT).toFixed(1)}%)`;
-    const arcGlowOpacity = (0.15 + 0.35 * arcT).toFixed(2);
+    // Arc color: #84e80c = HSL(87°, 90%, 48%). Hue and saturation fixed throughout.
+    // Lightness stays at 48% (full neon) across the middle range; only dims slightly
+    // in the last 25% of travel (|dB| > 9 dB) to acknowledge the extreme.
+    const arcT           = Math.min(1, Math.abs(defaultValue) / 12);
+    const edgeT          = Math.max(0, (arcT - 0.75) / 0.25);
+    const arcL           = 48 - 8 * edgeT;
+    const arcStroke      = `hsl(87,90%,${arcL.toFixed(1)}%)`;
+    const arcGlowOpacity = (0.20 + 0.30 * arcT).toFixed(2);
 
     // dB readout: "0.0 dB", "+2.4 dB", "-3.6 dB"
     const isZero = Math.abs(defaultValue) < 0.05;
@@ -146,7 +149,7 @@ export function Knob({ label, size, defaultValue = 0, onChange }: KnobProps) {
                     <circle cx={cx} cy={cx} r={r} fill="none"
                         stroke={arcStroke} strokeWidth={sw} strokeLinecap="butt"
                         strokeDasharray={activeDash} transform={`rotate(135 ${cx} ${cx})`}
-                        style={{ filter: `drop-shadow(0 0 5px rgba(169,232,12,${arcGlowOpacity}))` }}
+                        style={{ filter: `drop-shadow(0 0 5px rgba(132,232,12,${arcGlowOpacity}))` }}
                     />
                     {/* Tick marks */}
                     {ticks.map(({ db, kind, x1, y1, x2, y2 }) => (
@@ -180,7 +183,7 @@ export function Knob({ label, size, defaultValue = 0, onChange }: KnobProps) {
                     left: needleLeft, top: needleTop,
                     width: needleW, height: needleH,
                     borderRadius: "2px", background: ACCENT,
-                    boxShadow: "0 0 12px rgba(169,232,12,.8)",
+                    boxShadow: "0 0 12px rgba(132,232,12,.8)",
                     transformOrigin: needleOrigin,
                     transform: `rotate(${rotation}deg)`,
                 }} />

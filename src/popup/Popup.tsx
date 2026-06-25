@@ -4,8 +4,8 @@ export default function Popup() {
     return (
         <div
             style={{
-                "--accent": "#a9e80c",
-                width: "520px",
+                "--accent": "#84e80c",
+                width: "560px",
                 height: "570px",
             } as React.CSSProperties}
         >

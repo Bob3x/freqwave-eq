@@ -24,7 +24,7 @@ import { Spectrum } from "./Spectrum";
 // Constants
 // ---------------------------------------------------------------------------
 
-const ACCENT = "var(--accent, #a9e80c)";
+const ACCENT = "var(--accent, #84e80c)";
 
 const FREQS = ["32Hz", "64Hz", "125Hz", "250Hz", "500Hz", "1kHz", "4kHz", "8kHz"] as const;
 
@@ -222,7 +222,7 @@ export function FreqWavePopup() {
         : "#6a6a72";
 
     const engineGlow = engineState === "active"
-        ? "rgba(169,232,12,.9)"
+        ? "rgba(132,232,12,.9)"
         : engineState === "starting"
         ? "rgba(245,158,11,.8)"
         : "rgba(0,0,0,0)";
@@ -404,8 +404,8 @@ export function FreqWavePopup() {
                     onMouseEnter={e => {
                         const el = e.currentTarget;
                         el.style.color = ACCENT;
-                        el.style.borderColor = "rgba(169,232,12,.5)";
-                        el.style.boxShadow = "0 0 16px rgba(169,232,12,.15)";
+                        el.style.borderColor = "rgba(132,232,12,.5)";
+                        el.style.boxShadow = "0 0 16px rgba(132,232,12,.15)";
                     }}
                     onMouseLeave={e => {
                         const el = e.currentTarget;

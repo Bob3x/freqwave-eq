@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-const ACCENT = "var(--accent, #a9e80c)";
+const ACCENT = "var(--accent, #84e80c)";
 
 interface BandFaderProps {
     freq: string;
@@ -19,8 +19,8 @@ export function BandFader({ freq, value, onChange }: BandFaderProps) {
 
     // Green intensity: 40% at 0 dB, 100% at ±12 dB
     const intensity  = 0.4 + 0.6 * Math.min(1, Math.abs(value) / 12);
-    const fillColor  = `rgba(169,232,12,${intensity.toFixed(2)})`;
-    const glowColor  = `rgba(169,232,12,${(intensity * 0.45).toFixed(2)})`;
+    const fillColor  = `rgba(132,232,12,${intensity.toFixed(2)})`;
+    const glowColor  = `rgba(132,232,12,${(intensity * 0.45).toFixed(2)})`;
 
     const handleBottom = `calc(${(pct * 100).toFixed(1)}% - 7px)`;
     const fillBottom   = `${(lo * 100).toFixed(1)}%`;

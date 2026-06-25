@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+:root {
+    --accent: #84e80c;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
