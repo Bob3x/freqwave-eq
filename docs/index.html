@@ -61,7 +61,9 @@
             color: var(--text);
         }
 
-        .brand .accent { color: var(--accent); }
+        .brand .accent {
+            color: var(--accent);
+        }
 
         .brand .eq {
             color: var(--muted);
@@ -77,7 +79,9 @@
             transition: color 0.15s;
         }
 
-        nav a.nav-link:hover { color: var(--text); }
+        nav a.nav-link:hover {
+            color: var(--text);
+        }
 
         /* ── Hero ── */
         .hero {
@@ -128,8 +132,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
         }
 
         .hero h1 {
@@ -141,7 +152,9 @@
             max-width: 800px;
         }
 
-        .hero h1 .accent { color: var(--accent); }
+        .hero h1 .accent {
+            color: var(--accent);
+        }
 
         .hero p.lead {
             font-size: clamp(16px, 2vw, 19px);
@@ -488,7 +501,9 @@
             transition: border-color 0.15s;
         }
 
-        .privacy-card a:hover { border-bottom-color: var(--accent); }
+        .privacy-card a:hover {
+            border-bottom-color: var(--accent);
+        }
 
         /* ── Footer ── */
         footer {
@@ -519,7 +534,9 @@
             transition: color 0.15s;
         }
 
-        footer a:hover { color: var(--text); }
+        footer a:hover {
+            color: var(--text);
+        }
 
         footer nav {
             position: static;
@@ -532,7 +549,9 @@
 
         /* ── Responsive ── */
         @media (max-width: 640px) {
-            nav { padding: 14px 20px; }
+            nav {
+                padding: 14px 20px;
+            }
 
             .privacy-card {
                 flex-direction: column;
@@ -540,7 +559,10 @@
                 padding: 28px 24px;
             }
 
-            footer { flex-direction: column; align-items: flex-start; }
+            footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -571,14 +593,17 @@
         <div class="hero-actions">
             <a href="CHROME_STORE_LINK_PLACEHOLDER" class="btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z"/>
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z" />
                 </svg>
                 Add to Chrome
             </a>
             <a href="https://github.com/Bob3x/freqwave-eq" class="btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    <path
+                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                 </svg>
                 View on GitHub
             </a>
@@ -588,7 +613,7 @@
         <div class="eq-visual">
             <div class="eq-visual-label">8-Band Equalizer</div>
             <!-- Animated spectrum -->
-            <div class="spectrum-line">
+            <!--<div class="spectrum-line">
                 <svg viewBox="0 0 576 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="specGrad" x1="0" y1="0" x2="0" y2="1">
@@ -599,7 +624,7 @@
                     <path d="M0,48 L0,32 Q24,28 48,30 Q72,32 96,22 Q120,12 144,18 Q168,24 192,14 Q216,4 240,10 Q264,16 288,8 Q312,0 336,6 Q360,12 384,16 Q408,20 432,24 Q456,28 480,22 Q504,16 528,26 Q552,36 576,30 L576,48 Z" fill="url(#specGrad)"/>
                     <path d="M0,32 Q24,28 48,30 Q72,32 96,22 Q120,12 144,18 Q168,24 192,14 Q216,4 240,10 Q264,16 288,8 Q312,0 336,6 Q360,12 384,16 Q408,20 432,24 Q456,28 480,22 Q504,16 528,26 Q552,36 576,30" fill="none" stroke="#84e80c" stroke-width="1.5" opacity="0.7"/>
                 </svg>
-            </div>
+            </div> -->
             <div class="eq-bars">
                 <div class="eq-bar-wrap">
                     <div class="eq-bar" style="height: 22px;"></div>
@@ -650,32 +675,38 @@
             <div class="feature-card">
                 <div class="feature-icon">🎚</div>
                 <h3>8-Band Parametric EQ</h3>
-                <p>Full-range control from 32 Hz to 8 kHz. Each band adjustable ±12 dB with precise per-slider control. Flat by default — only shape what needs shaping.</p>
+                <p>Full-range control from 32 Hz to 8 kHz. Each band adjustable ±12 dB with precise per-slider control.
+                    Flat by default — only shape what needs shaping.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎙</div>
                 <h3>Voice Enhancer</h3>
-                <p>Four curated DSP modes — Off, Dialogue, Leveler, and Clarity — each tuned for a different listening scenario. Leveler includes a dynamics compressor.</p>
+                <p>Four curated DSP modes — Off, Dialogue, Leveler, and Clarity — each tuned for a different listening
+                    scenario. Leveler includes a dynamics compressor.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📊</div>
                 <h3>Live FFT Visualizer</h3>
-                <p>Real-time spectrum display driven by the post-processing audio signal, so you see exactly what you're hearing after the EQ curve is applied.</p>
+                <p>Real-time spectrum display driven by the post-processing audio signal, so you see exactly what you're
+                    hearing after the EQ curve is applied.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔒</div>
                 <h3>100% Local Processing</h3>
-                <p>All audio processing happens inside your browser using the Web Audio API. No audio data ever leaves your device. No servers, no accounts, no tracking.</p>
+                <p>All audio processing happens inside your browser using the Web Audio API. No audio data ever leaves
+                    your device. No servers, no accounts, no tracking.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">💾</div>
                 <h3>Persistent Settings</h3>
-                <p>Your EQ curve, knob positions, and Voice Enhancer mode are saved automatically. Open the extension a week later and your settings are exactly where you left them.</p>
+                <p>Your EQ curve, knob positions, and Voice Enhancer mode are saved automatically. Open the extension a
+                    week later and your settings are exactly where you left them.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
                 <h3>Zero Latency Routing</h3>
-                <p>Tab capture runs in an offscreen document separate from your page, so the extension never touches the page DOM and doesn't slow down the site you're on.</p>
+                <p>Tab capture runs in an offscreen document separate from your page, so the extension never touches the
+                    page DOM and doesn't slow down the site you're on.</p>
             </div>
         </div>
     </section>
@@ -694,22 +725,26 @@
                 <div class="mode-card">
                     <div class="mode-name">Off</div>
                     <h3>Bypass</h3>
-                    <p>Voice Enhancer inactive. Your manual EQ curve and gain settings still apply. Use this when you want full manual control.</p>
+                    <p>Voice Enhancer inactive. Your manual EQ curve and gain settings still apply. Use this when you
+                        want full manual control.</p>
                 </div>
                 <div class="mode-card">
                     <div class="mode-name">Dialogue</div>
                     <h3>Voice Lift</h3>
-                    <p>Cuts low mud, boosts upper-mid presence. Designed for podcasts and videos where voice sits too far back in the mix.</p>
+                    <p>Cuts low mud, boosts upper-mid presence. Designed for podcasts and videos where voice sits too
+                        far back in the mix.</p>
                 </div>
                 <div class="mode-card">
                     <div class="mode-name">Leveler</div>
                     <h3>Dynamics Control</h3>
-                    <p>Adds a dynamics compressor to even out loud and quiet passages. Ideal for content with inconsistent levels, like live recordings.</p>
+                    <p>Adds a dynamics compressor to even out loud and quiet passages. Ideal for content with
+                        inconsistent levels, like live recordings.</p>
                 </div>
                 <div class="mode-card">
                     <div class="mode-name">Clarity</div>
                     <h3>Air & Detail</h3>
-                    <p>Progressive high-frequency lift that opens up the sound. Works well on compressed streaming audio that sounds dull or closed-in.</p>
+                    <p>Progressive high-frequency lift that opens up the sound. Works well on compressed streaming audio
+                        that sounds dull or closed-in.</p>
                 </div>
             </div>
         </div>
@@ -725,21 +760,24 @@
                 <div class="step-num">1</div>
                 <div class="step-body">
                     <h4>Install the extension</h4>
-                    <p>Load FreqWave EQ from the Chrome Web Store or install it unpacked in Developer mode via chrome://extensions.</p>
+                    <p>Load FreqWave EQ from the Chrome Web Store or install it unpacked in Developer mode via
+                        chrome://extensions.</p>
                 </div>
             </div>
             <div class="step">
                 <div class="step-num">2</div>
                 <div class="step-body">
                     <h4>Open the popup on any tab</h4>
-                    <p>Click the FreqWave EQ icon while on a tab playing audio — YouTube, Spotify, a podcast site, anything. Hit the Engine pill to start capture.</p>
+                    <p>Click the FreqWave EQ icon while on a tab playing audio — YouTube, Spotify, a podcast site,
+                        anything. Hit the Engine pill to start capture.</p>
                 </div>
             </div>
             <div class="step">
                 <div class="step-num">3</div>
                 <div class="step-body">
                     <h4>Shape your sound</h4>
-                    <p>Adjust the 8-band EQ, tweak Master Volume and Pre-Amp, and pick a Voice Enhancer mode. Changes apply in real time with no buffering or interruption.</p>
+                    <p>Adjust the 8-band EQ, tweak Master Volume and Pre-Amp, and pick a Voice Enhancer mode. Changes
+                        apply in real time with no buffering or interruption.</p>
                 </div>
             </div>
         </div>
@@ -772,4 +810,5 @@
     </footer>
 
 </body>
+
 </html>
