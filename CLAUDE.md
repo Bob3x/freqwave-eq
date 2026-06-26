@@ -61,9 +61,9 @@ src/
 manifest.json
 ```
 
-If a file has a kebab-case duplicate (e.g., `freqwave-popup.tsx` next to
-`FreqWavePopup.tsx`), the kebab-case one is dead code from an earlier
-migration and must not be edited or referenced.
+Kebab-case duplicate files have been deleted in cleanup. If a kebab-case
+variant ever reappears (e.g., `freqwave-popup.tsx`), it is regression —
+do not edit it; restore the PascalCase as the active file.
 
 ## Audio graph
 
@@ -94,7 +94,7 @@ source (MediaStreamAudioSourceNode from getUserMedia)
 - Gain range per band: ±12 dB
 - Default state: all bands at 0 dB (flat)
 
-### Gain controls (current — replaces earlier spec)
+### Gain controls
 
 - **Master Volume**: symmetric ±12 dB, default 0 dB at 12 o'clock.
   Linear in dB, then gain = 10^(dB/20).
@@ -120,6 +120,13 @@ Four modes: OFF / DIALOGUE / LEVELER / CLARITY.
 LEVELER is the only mode that engages the compressor. OFF/DIALOGUE/CLARITY
 bypass it.
 
+## Visual design tokens
+
+- **Accent color (neon green):** `#84e80c`. Use the `--accent` CSS custom
+  property. Older `#a9e80c` was deprecated for being too yellow-green.
+- The accent is the only color used for active state, position indicators,
+  and emphasis. Inactive elements are muted gray.
+
 ## Architectural decisions (locked)
 
 ### Power toggle UX
@@ -136,6 +143,8 @@ bypass it.
   when the user switches tabs.
 - When popup opens on a different tab than the captured one, show the
   hostname of the captured tab (e.g., "Capturing: youtube.com").
+- The hostname line reserves vertical space even when hidden (engine
+  off), so toggling on/off does not cause layout shift.
 - Reject new START_CAPTURE attempts while a capture is active.
 - Service worker tracks captured tab ID + hostname.
 
@@ -166,7 +175,7 @@ bypass it.
 - Calm/idle when engine is off (don't animate constantly when bypassed).
 - Spectrum view; waveform option deferred.
 
-### Persistence (current)
+### Persistence
 
 - chrome.storage.sync wrapper in `src/shared/settings.ts`.
 - All user-visible settings persist across Chrome restart:
@@ -225,31 +234,35 @@ Use the separate typed messages above.
 - Live FFT spectrum visualizer
 - Capture-tab-sticky behavior with hostname display
 - Engine On/Off pill with three-state badge
+- **Fullscreen compatibility** — captured tab can enter/exit fullscreen
+  cleanly. (Fixed by referencing the equalizer-plus open-source
+  implementation; the previous bug was in how the MediaStream was
+  consumed in the offscreen document.)
+- No layout shift when toggling engine on/off
+- Pointer cursor on knobs/sliders (was previously showing resize cursor)
 
 ## Known issues (priority order)
 
-1. **CRITICAL: Fullscreen bug.** When the extension is active on a tab,
-   the tab cannot enter fullscreen (e.g., YouTube fullscreen button does
-   nothing or exits immediately). This is a v1.0 ship-blocker.
-
-    Note: this is NOT a Chrome platform restriction. The Chrome
-    tabCapture docs explicitly include a `fullscreen` property on the
-    tab capture state. Simpler EQ extensions using the same MV3 +
-    tabCapture + offscreen pattern do not have this bug. The cause is
-    in our specific implementation, almost certainly in how the
-    offscreen document consumes the MediaStream. The fix is not
-    "tear down capture on fullscreen."
-
-2. **UI polish (cosmetic, not blockers but should land before v1.0):**
+1. **UI polish (cosmetic, scheduled for the next polish pass):**
     - Popup left edge crops in some viewport sizes
     - Master Volume arc shifts hue toward yellow at high |dB|
+      (saturation/HSL approach needed, opacity caused this)
     - Spectrum visualizer waveform clips at top/bottom of container
-    - Capturing-hostname line causes layout shift when ENGINE OFF hides it
-    - Cursor on knobs/sliders shows resize cursor instead of pointer/grab
 
-3. Pending UX confirmations:
-    - Per-site vs. global EQ settings (deferred to v1.1)
-    - Custom user-saved presets (deferred to v1.1)
+2. Pending UX confirmations (deferred to v1.1):
+    - Per-site vs. global EQ settings
+    - Custom user-saved presets
+
+## Reference implementations
+
+When debugging audio engine or MV3 architecture issues, the closest
+working open-source reference is:
+
+- **NikoSardas/equalizer-plus** (MIT licensed, ~10K Chrome Web Store users)
+  https://github.com/NikoSardas/equalizer-plus
+  Same architecture as ours: Service Worker + Offscreen Document +
+  tabCapture + Web Audio API. Use as a diff target when our
+  implementation deviates from a known-working pattern.
 
 ## Code conventions
 
@@ -271,6 +284,8 @@ Use the separate typed messages above.
 - After code changes, click the reload icon on the extension card
 - Test target: YouTube in a regular tab for general audio; podcast sites
   (e.g., a Spotify podcast page) for Voice Enhancer testing
+- Fullscreen test: YouTube fullscreen button while engine is active —
+  must enter and exit cleanly
 
 ## What NOT to do
 
@@ -281,8 +296,8 @@ Use the separate typed messages above.
 - Don't destroy the offscreen document on STOP_CAPTURE. Lifecycle is
   lazy-create then persistent until extension unload.
 - Don't auto-reconnect when the captured tab closes. Stop silently.
-- Don't edit any kebab-case duplicate file (e.g., freqwave-popup.tsx).
-  Those are dead code. Edit the PascalCase version.
+- Don't recreate any kebab-case duplicate files. They were deleted
+  intentionally during cleanup.
 - Don't add error dialogs or toast notifications for the closed-tab
   case. State change should be silent and visual only.
 - Don't overload SET_GAIN — use the separate typed messages defined
@@ -290,12 +305,15 @@ Use the separate typed messages above.
 - Don't add features beyond what's specified. We'll iterate after v1.0.
 - Don't refactor working code unless asked. Half-finished refactors are
   worse than messy working code.
-- Don't accept "Chrome platform restriction" as an answer to the
-  fullscreen bug — other extensions work, the bug is in our code.
+- Don't accept "Chrome platform restriction" as an answer to bugs.
+  When in doubt, diff against the equalizer-plus reference repo.
 - Don't change the gain mapping or knob ranges. The current values
   (symmetric ±12 dB, 0 dB at 12 o'clock, linear in dB) are locked.
 - Don't break unity gain. If both knobs read 0 dB and all bands are 0 dB
   with Voice Enhancer OFF, output level MUST equal bypassed input level.
+- Don't break fullscreen. The captured tab must be able to enter and
+  exit fullscreen without disruption.
+- Don't change the accent color from `#84e80c` without explicit instruction.
 
 ## How to use this file when working with Claude Code
 
@@ -305,6 +323,8 @@ Reference this document at the start of any prompt that touches code:
 > source files" section tells you which files are live. The "What NOT to do"
 > section lists banned approaches. The "Known issues" section lists what's
 > currently broken and what's been fixed (don't re-break it).
+> The "Reference implementations" section lists the equalizer-plus repo
+> to use as a diff target for architecture/engine questions.
 
 If something in this doc is wrong or outdated, fix it in a separate pass
 before changing code.

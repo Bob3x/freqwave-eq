@@ -140,11 +140,6 @@ export function Knob({ label, size, defaultValue = 0, onChange }: KnobProps) {
                     viewBox={`0 0 ${svgSize} ${svgSize}`}
                     style={{ position: "absolute", inset: 0 }}
                 >
-                    {/* Track — full 270° arc */}
-                    <circle cx={cx} cy={cx} r={r} fill="none"
-                        stroke="rgba(255,255,255,.07)" strokeWidth={sw} strokeLinecap="round"
-                        strokeDasharray={`${arcLen} ${totalLen}`} transform={`rotate(135 ${cx} ${cx})`}
-                    />
                     {/* Active fill — extends from 12 o'clock toward current value */}
                     <circle cx={cx} cy={cx} r={r} fill="none"
                         stroke={arcStroke} strokeWidth={sw} strokeLinecap="butt"

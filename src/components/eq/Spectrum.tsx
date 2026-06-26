@@ -42,7 +42,10 @@ export function Spectrum({ bands, engineActive }: SpectrumProps) {
             const engine = engineRef.current;
             const t      = ts / 1000;
             const n      = bs.length;
-            const mid    = H * 0.56;
+            const mid      = H * 0.5;
+            const pad      = 6;
+            const maxSwing = (H / 2) - pad;
+            const swingFactor = maxSwing / 15;  // 15 = clamped max of normInfl
 
             ctx.clearRect(0, 0, W, H);
 
@@ -62,8 +65,8 @@ export function Spectrum({ bands, engineActive }: SpectrumProps) {
                     ? (Math.sin(x * 0.03 + t * 2) + Math.sin(x * 0.013 - t * 1.3) * 0.6) * 3
                     : Math.sin(x * 0.02 + t) * 1.1;
                 const normInfl = Math.tanh(infl / 15) * 15;
-                const pad      = 10;
-                pts.push([x, Math.max(pad, Math.min(H - pad, mid - normInfl * 1.8 * amp + noise * amp))]);
+                const yCurve   = mid - normInfl * swingFactor * amp + noise * amp * 0.3;
+                pts.push([x, Math.max(pad, Math.min(H - pad, yCurve))]);
             }
 
             const col  = engine ? "132,232,12" : "120,124,130";

@@ -21,6 +21,18 @@ import { Knob } from "./Knob";
 import { Spectrum } from "./Spectrum";
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function truncateMiddle(str: string, max = 26): string {
+    if (str.length <= max) return str;
+    const keep = max - 1; // chars excluding the ellipsis
+    const tail = Math.floor(keep * 0.4);
+    const head = keep - tail;
+    return str.slice(0, head) + "…" + str.slice(str.length - tail);
+}
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -295,12 +307,17 @@ export function FreqWavePopup() {
                         </span>
                     </div>
 
-                    <span style={{
-                        fontSize: "9px", color: "#5d5d65",
-                        fontFamily: "'JetBrains Mono', monospace", paddingRight: "2px",
-                        visibility: (engineState === "active" && capturedHostname) ? "visible" : "hidden",
-                    }}>
-                        {capturedHostname ? `Capturing: ${capturedHostname}` : "Capturing: –"}
+                    <span
+                        title={capturedHostname ?? undefined}
+                        style={{
+                            fontSize: "9px", color: "#5d5d65",
+                            fontFamily: "'JetBrains Mono', monospace", paddingRight: "2px",
+                            visibility: (engineState === "active" && capturedHostname) ? "visible" : "hidden",
+                            maxWidth: "190px", overflow: "hidden", whiteSpace: "nowrap",
+                            display: "inline-block",
+                        }}
+                    >
+                        {capturedHostname ? `Capturing: ${truncateMiddle(capturedHostname)}` : "Capturing: –"}
                     </span>
                     {statusError && (
                         <span style={{ fontSize: "9px", color: "#f87171", fontFamily: "'JetBrains Mono', monospace", maxWidth: "220px", textAlign: "right", lineHeight: 1.3 }}>
@@ -311,7 +328,7 @@ export function FreqWavePopup() {
             </div>
 
             {/* ── CONTROLS ROW ── */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
 
                 {/* Knobs */}
                 <div style={{ display: "flex", gap: "18px", alignItems: "flex-start", flexShrink: 0 }}>
@@ -331,18 +348,18 @@ export function FreqWavePopup() {
 
                 {/* Voice Enhancer presets */}
                 <div style={{ flex: 1, textAlign: "right" }}>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#e8e8ec", letterSpacing: "-.01em" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 500, color: "#5d5d65", letterSpacing: ".08em", textTransform: "uppercase" }}>
                         Voice Enhancer
                     </div>
                     {/* Mode buttons */}
-                    <div style={{ display: "flex", gap: "2px", marginTop: "10px", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: "2px", marginTop: "6px", justifyContent: "flex-end" }}>
                         {PRESET_ORDER.map((name, i) => (
                             <button
                                 key={name}
                                 onClick={() => applyPreset(name)}
                                 style={{
                                     border: "none", background: "none",
-                                    cursor: "pointer", padding: "6px 9px",
+                                    cursor: "pointer", padding: "5px 7px",
                                     fontFamily: "'Archivo', sans-serif",
                                     fontSize: "11px",
                                     fontWeight: presetIdx === i ? 700 : 500,
@@ -387,7 +404,14 @@ export function FreqWavePopup() {
                     fontFamily: "'JetBrains Mono', monospace",
                     fontSize: "10px", letterSpacing: ".1em", color: "#44444c",
                 }}>
-                    FreqWave · v1.0
+                    <a
+                        href="https://github.com/Bob3x/freqwave-eq"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "inherit", textDecoration: "none", transition: "color .18s" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "#9a9aaa"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = "inherit"; }}
+                    >FreqWave</a> v1.0
                 </div>
                 <button
                     onClick={handleZeroEQ}
