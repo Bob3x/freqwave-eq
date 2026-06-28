@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "FreqWave EQ",
     "version": "1.0.0",
-    "description": "8-band Web Audio Equalizer for fixing muddy podcasts, harsh streams and quiet dialogue.",
+    "description": "8-band Web Audio Equalizer - fixing muddy podcasts, harsh streams and quiet dialogue.",
 
     "permissions": ["activeTab", "tabCapture", "offscreen", "storage"],
 
