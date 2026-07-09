@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Build artifacts and signing key
+dist.crx
+dist.zip
+dist.pem
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
