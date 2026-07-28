@@ -166,10 +166,10 @@
         }
 
         .hero-actions {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
             gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
+            width: min(100%, 560px);
         }
 
         .btn-primary {
@@ -185,6 +185,34 @@
             text-decoration: none;
             transition: opacity 0.15s, transform 0.15s;
             letter-spacing: -0.01em;
+        }
+
+        .store-button {
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 20px;
+            justify-content: center;
+            white-space: nowrap;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .store-button svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            display: block;
+        }
+
+        .store-button--primary {
+            background: var(--accent);
+            color: #0a0c08;
+        }
+
+        .store-button--secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
         }
 
         .btn-primary:hover {
@@ -554,6 +582,11 @@
                 padding: 14px 20px;
             }
 
+            .hero-actions {
+                grid-template-columns: 1fr;
+                width: 100%;
+            }
+
             .privacy-card {
                 flex-direction: column;
                 gap: 20px;
@@ -597,8 +630,8 @@
 
         <div class="hero-actions">
             <a href="https://chromewebstore.google.com/detail/freqwave-eq/emikokoknlgeiloipjheoafjjeoicjap"
-                class="btn-primary" target="_blank">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                class="btn-primary store-button store-button--primary" target="_blank">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path
                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
                     <path
@@ -606,10 +639,20 @@
                 </svg>
                 Add to Chrome
             </a>
-            <a href="https://github.com/Bob3x/freqwave-eq" class="btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <a href="https://microsoftedge.microsoft.com/addons/detail/freqwave-eq/nipingjlojglpdkjplpeimnkjoelbnaa"
+                class="btn-primary store-button store-button--primary" target="_blank">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path
-                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z" />
+                </svg>
+                Add to Edge
+            </a>
+            <a href="https://github.com/Bob3x/freqwave-eq" class="btn-secondary store-button store-button--secondary">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.18 6.84 9.5.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.71-2.78.61-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03A9.56 9.56 0 0112 6.84c.85 0 1.7.12 2.5.34 1.91-1.3 2.75-1.03 2.75-1.03.54 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.86 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.02 10.02 0 0022 12c0-5.52-4.48-10-10-10z" />
                 </svg>
                 View on GitHub
             </a>
