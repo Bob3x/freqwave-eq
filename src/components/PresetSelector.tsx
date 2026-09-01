@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Trash2, Plus, Check, X } from "lucide-react";
+import { Trash2, Plus, Check, X, ChevronDown } from "lucide-react";
 
 export interface Preset {
     id: string;
@@ -44,33 +44,33 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
     };
 
     return (
-        <div className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-800/80 rounded-lg border border-slate-700 text-sm">
+        <div className="w-full flex items-center justify-between gap-2 px-3 py-1.5 bg-[#0f1012] rounded-[10px] border border-white/10 text-xs">
             {/* Label / Section Title */}
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#5d5d65]">
                 Preset
             </span>
 
             {/* Inline Save Flow or Dropdown Trigger */}
             {isNaming ? (
-                <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
+                <div className="flex items-center gap-1 flex-1 max-w-50">
                     <input
                         type="text"
                         value={newPresetName}
                         onChange={(e) => setNewPresetName(e.target.value)}
                         placeholder="Preset Name..."
                         autoFocus
-                        className="w-full px-2 py-1 text-xs bg-slate-900 border border-indigo-500/50 rounded text-slate-100 focus:outline-none"
+                        className="w-full px-2 py-0.5 text-[11px] bg-[#16171b] border border-[#84e80c]/50 rounded text-[#f3f3f5] focus:outline-none"
                         onKeyDown={(e) => e.key === "Enter" && handleSaveSubmit()}
                     />
                     <button
                         onClick={handleSaveSubmit}
-                        className="p-1 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors"
+                        className="p-1 hover:bg-[#84e80c]/10 text-[#84e80c] rounded transition-colors"
                         title="Confirm Save">
                         <Check size={14} />
                     </button>
                     <button
                         onClick={() => setIsNaming(false)}
-                        className="p-1 hover:bg-rose-500/20 text-rose-400 rounded transition-colors"
+                        className="p-1 hover:bg-red-400/10 text-[#f87171] rounded transition-colors"
                         title="Cancel">
                         <X size={14} />
                     </button>
@@ -81,9 +81,9 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                     <div className="relative">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-950 border border-slate-700/80 rounded text-xs font-medium text-slate-200 transition-all min-w-[130px]">
+                            className="flex items-center gap-2 px-0 py-0 bg-transparent hover:text-[#84e80c] border-0 text-[11px] font-medium text-[#d7d7dc] transition-colors min-w-32.5">
                             <span className="truncate">{displayLabel}</span>
-                            <span className="text-slate-500 text-[10px]">▼</span>
+                            <ChevronDown size={13} className="shrink-0 text-[#5d5d65]" />
                         </button>
 
                         {/* Dropdown Menu Popup */}
@@ -95,10 +95,10 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                     onClick={() => setIsOpen(false)}
                                 />
 
-                                <div className="absolute right-0 mt-1 w-48 max-h-56 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 text-xs divide-y divide-slate-800">
+                                <div className="absolute right-0 mt-1 w-48 max-h-56 overflow-y-auto bg-[#16171b] border border-white/10 rounded-lg shadow-xl z-50 text-[11px] divide-y divide-white/10">
                                     {/* Built-in Presets Group */}
                                     <div className="py-1">
-                                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5d5d65]">
                                             Default Presets
                                         </div>
                                         {builtInPresets.map((preset) => (
@@ -108,10 +108,10 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                                     onSelectPreset(preset);
                                                     setIsOpen(false);
                                                 }}
-                                                className={`w-full text-left px-3 py-1.5 hover:bg-indigo-600/20 transition-colors ${
+                                                className={`w-full text-left px-3 py-1.5 hover:bg-[#84e80c]/10 transition-colors ${
                                                     activePresetId === preset.id
-                                                        ? "text-indigo-400 font-semibold"
-                                                        : "text-slate-300"
+                                                        ? "text-[#84e80c] font-semibold"
+                                                        : "text-[#b8b8c0]"
                                                 }`}>
                                                 {preset.name}
                                             </button>
@@ -120,18 +120,18 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
 
                                     {/* Custom Presets Group */}
                                     <div className="py-1">
-                                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5d5d65]">
                                             My Presets
                                         </div>
                                         {customPresets.length === 0 ? (
-                                            <div className="px-3 py-1.5 text-slate-500 italic text-[11px]">
+                                            <div className="px-3 py-1.5 text-[#5d5d65] italic text-[11px]">
                                                 No custom presets
                                             </div>
                                         ) : (
                                             customPresets.map((preset) => (
                                                 <div
                                                     key={preset.id}
-                                                    className="group flex items-center justify-between px-3 py-1.5 hover:bg-indigo-600/20 transition-colors cursor-pointer"
+                                                    className="group flex items-center justify-between px-3 py-1.5 hover:bg-[#84e80c]/10 transition-colors cursor-pointer"
                                                     onClick={() => {
                                                         onSelectPreset(preset);
                                                         setIsOpen(false);
@@ -139,8 +139,8 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                                     <span
                                                         className={`truncate ${
                                                             activePresetId === preset.id
-                                                                ? "text-indigo-400 font-semibold"
-                                                                : "text-slate-300"
+                                                                ? "text-[#84e80c] font-semibold"
+                                                                : "text-[#b8b8c0]"
                                                         }`}>
                                                         {preset.name}
                                                     </span>
@@ -149,7 +149,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                                             e.stopPropagation(); // Prevents loading the preset on delete
                                                             onDeletePreset(preset.id);
                                                         }}
-                                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-rose-400 transition-all"
+                                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-[#5d5d65] hover:text-[#f87171] transition-all"
                                                         title="Delete Preset">
                                                         <Trash2 size={12} />
                                                     </button>
@@ -165,10 +165,9 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                     {/* Quick Save Button */}
                     <button
                         onClick={() => setIsNaming(true)}
-                        className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs transition-colors"
+                        className="flex items-center justify-center p-0.5 bg-transparent hover:text-[#84e80c] text-[#84e80c] border-0 rounded transition-colors"
                         title="Save Current Sliders as Preset">
-                        <Plus size={12} />
-                        <span>Save</span>
+                        <Plus size={15} />
                     </button>
                 </div>
             )}
