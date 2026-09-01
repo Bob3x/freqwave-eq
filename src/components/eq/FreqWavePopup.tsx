@@ -12,7 +12,11 @@ import type {
 } from "../../messages/types";
 import {
     DEFAULT_SETTINGS,
+    loadSettings,
+    normalizeSettings,
+    saveSettings,
     STORAGE_KEY,
+    STANDARD_PRESETS,
     type FreqWaveSettings,
     type PresetName
 } from "../../shared/settings";
@@ -107,7 +111,9 @@ export function FreqWavePopup() {
     const [statusError, setStatusError] = useState<string | null>(null);
 
     // EQ settings — null while loading from storage (avoids flash of wrong defaults)
-    const [settings, setSettings] = useState<FreqWaveSettings | null>(null);
+    const [settings, setSettings] = useState<FreqWaveSettings | null>(() =>
+        getChromeStorageSync() ? null : DEFAULT_SETTINGS
+    );
 
     // Storage persistence refs
     const settingsLoadedRef = useRef(false); // skip write-back on the initial load
@@ -116,14 +122,12 @@ export function FreqWavePopup() {
     // ── Load settings from chrome.storage.sync on mount ──────────────────────
     useEffect(() => {
         const storage = getChromeStorageSync();
-        if (!storage) {
-            setSettings(DEFAULT_SETTINGS);
-            return;
-        }
+        if (!storage) return;
 
         storage.get(STORAGE_KEY, (result) => {
-            const stored = result[STORAGE_KEY] as FreqWaveSettings | undefined;
-            setSettings(stored ?? DEFAULT_SETTINGS);
+            loadSettings()
+                .then(setSettings)
+                .catch(() => setSettings(DEFAULT_SETTINGS));
         });
     }, []);
 
@@ -138,8 +142,7 @@ export function FreqWavePopup() {
         }
 
         const timer = setTimeout(() => {
-            const storage = getChromeStorageSync();
-            storage?.set?.({ [STORAGE_KEY]: settings });
+            saveSettings(settings);
         }, 300);
 
         return () => clearTimeout(timer);
@@ -149,8 +152,7 @@ export function FreqWavePopup() {
     useEffect(() => {
         const flush = () => {
             if (document.visibilityState === "hidden" && latestSettings.current !== null) {
-                const storage = getChromeStorageSync();
-                storage?.set?.({ [STORAGE_KEY]: latestSettings.current });
+                saveSettings(latestSettings.current);
             }
         };
         document.addEventListener("visibilitychange", flush);
@@ -193,7 +195,7 @@ export function FreqWavePopup() {
                 sendMasterGain(s.master);
                 sendPreampGain(s.preamp);
                 s.bands.forEach((db, i) => sendBandGain(i, db));
-                sendCompressor(s.preset === "LEVELER");
+                sendCompressor(s.compressorEnabled);
             }
         }
         prevEngineState.current = engineState;
@@ -219,14 +221,27 @@ export function FreqWavePopup() {
 
     const applyPreset = useCallback((name: PresetName) => {
         const values = [...PRESETS[name]] as number[];
-        setSettings((s) => ({ ...(s ?? DEFAULT_SETTINGS), bands: values, preset: name }));
+        setSettings((s) => ({
+            ...(s ?? DEFAULT_SETTINGS),
+            bands: values,
+            preset: name,
+            eqPreset: s?.eqPreset ?? DEFAULT_SETTINGS.eqPreset,
+            compressorEnabled: name === "LEVELER" ? true : (s?.compressorEnabled ?? false)
+        }));
         values.forEach((db, i) => sendBandGain(i, db));
-        sendCompressor(name === "LEVELER");
+        if (name === "LEVELER") sendCompressor(true);
     }, []);
 
     const handleZeroEQ = useCallback(() => {
         const zeros = [0, 0, 0, 0, 0, 0, 0, 0];
-        setSettings(() => ({ master: 0, preamp: 0, bands: zeros, preset: "OFF" }));
+        setSettings(() => ({
+            master: 0,
+            preamp: 0,
+            bands: zeros,
+            preset: "OFF",
+            eqPreset: "FLAT",
+            compressorEnabled: false
+        }));
         zeros.forEach((_, i) => sendBandGain(i, 0));
         sendMasterGain(0);
         sendPreampGain(0);
@@ -247,15 +262,42 @@ export function FreqWavePopup() {
         setSettings((s) => {
             const newBands = [...(s?.bands ?? DEFAULT_SETTINGS.bands)];
             newBands[i] = db;
-            return { ...(s ?? DEFAULT_SETTINGS), bands: newBands, preset: null };
+            return { ...(s ?? DEFAULT_SETTINGS), bands: newBands, preset: null, eqPreset: null };
         });
         sendBandGain(i, db);
     }, []);
 
+    const handleStandardPresetChange = useCallback(
+        (event: React.ChangeEvent<HTMLSelectElement>) => {
+            const name = event.target.value as FreqWaveSettings["eqPreset"];
+            const selected = STANDARD_PRESETS.find((preset) => preset.name === name);
+            if (!selected) return;
+
+            const values = [...selected.bands];
+            setSettings((s) => ({
+                ...(s ?? DEFAULT_SETTINGS),
+                bands: values,
+                eqPreset: selected.name
+            }));
+            values.forEach((db, i) => sendBandGain(i, db));
+        },
+        []
+    );
+
+    const compressorEnabled = settings?.compressorEnabled ?? false;
+
+    const handleCompressorToggle = useCallback(() => {
+        const enabled = !compressorEnabled;
+        sendCompressor(enabled);
+        setSettings((s) => {
+            return { ...(s ?? DEFAULT_SETTINGS), compressorEnabled: enabled };
+        });
+    }, [compressorEnabled]);
+
     // ── Guard: don't render until settings are loaded from storage ────────────
     if (settings === null) return null;
 
-    const { master, preamp, bands, preset } = settings;
+    const { master, preamp, bands, preset, eqPreset } = settings;
 
     // ---------------------------------------------------------------------------
     // Badge visuals
@@ -449,6 +491,45 @@ export function FreqWavePopup() {
 
                 {/* Voice Enhancer presets */}
                 <div style={{ flex: 1, textAlign: "right" }}>
+                    <div style={{ marginBottom: "8px" }}>
+                        <label
+                            htmlFor="standard-preset"
+                            style={{
+                                display: "block",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                color: "#5d5d65",
+                                letterSpacing: ".08em",
+                                textTransform: "uppercase"
+                            }}>
+                            EQ Presets
+                        </label>
+                        <select
+                            id="standard-preset"
+                            value={eqPreset ?? ""}
+                            onChange={handleStandardPresetChange}
+                            style={{
+                                marginTop: "6px",
+                                maxWidth: "150px",
+                                padding: "5px 8px",
+                                borderRadius: "7px",
+                                border: "1px solid rgba(255,255,255,.1)",
+                                background: "#16171b",
+                                color: eqPreset ? "#d7d7dc" : "#6a6a72",
+                                fontFamily: "'Archivo', sans-serif",
+                                fontSize: "11px",
+                                cursor: "pointer"
+                            }}>
+                            <option value="" disabled>
+                                Select preset
+                            </option>
+                            {STANDARD_PRESETS.map((standardPreset) => (
+                                <option key={standardPreset.name} value={standardPreset.name}>
+                                    {standardPreset.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div
                         style={{
                             fontSize: "11px",
@@ -488,6 +569,25 @@ export function FreqWavePopup() {
                             </button>
                         ))}
                     </div>
+                    <button
+                        type="button"
+                        aria-pressed={compressorEnabled}
+                        onClick={handleCompressorToggle}
+                        style={{
+                            border: `1px solid ${compressorEnabled ? "rgba(132,232,12,.5)" : "rgba(255,255,255,.1)"}`,
+                            borderRadius: "999px",
+                            background: compressorEnabled ? "rgba(132,232,12,.1)" : "#16171b",
+                            color: compressorEnabled ? ACCENT : "#6a6a72",
+                            cursor: "pointer",
+                            padding: "4px 9px",
+                            fontFamily: "'Archivo', sans-serif",
+                            fontSize: "9px",
+                            fontWeight: 600,
+                            letterSpacing: ".08em",
+                            textTransform: "uppercase"
+                        }}>
+                        Compressor {compressorEnabled ? "On" : "Bypass"}
+                    </button>
                 </div>
             </div>
 

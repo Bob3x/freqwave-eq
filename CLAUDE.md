@@ -94,7 +94,7 @@ source (MediaStreamAudioSourceNode from getUserMedia)
   → pre-amp (GainNode)
   → 8 × BiquadFilterNode
   → master gain (GainNode)
-  → [DynamicsCompressorNode — active only when Voice Enhancer = LEVELER]
+  → [DynamicsCompressorNode — active when Compressor is enabled]
   → analyser (AnalyserNode, for visualizer)
   → destination (AudioContext.destination)
 ```
@@ -135,12 +135,12 @@ Four modes: OFF / DIALOGUE / LEVELER / CLARITY.
 
 - **OFF** — bypass
 - **DIALOGUE** — EQ curve: `[-3, -2, 0, 2, 3, 4, 2, 0]`
-- **LEVELER** — EQ curve: `[1, 1, 1, 0, 0, 1, 1, 1]` + DynamicsCompressorNode
-  active (threshold -24, ratio 4, attack 0.01, release 0.15, knee 30)
+- **LEVELER** — EQ curve: `[1, 1, 1, 0, 0, 1, 1, 1]`
+- **Compressor** — independent toggle; when enabled, threshold -24, ratio 4,
+  attack 0.01, release 0.15, knee 30
 - **CLARITY** — EQ curve: `[-1, 0, 1, 2, 3, 5, 6, 4]`
 
-LEVELER is the only mode that engages the compressor. OFF/DIALOGUE/CLARITY
-bypass it.
+The compressor can be enabled in any Voice Enhancer mode, including OFF.
 
 ## Visual design tokens
 
@@ -228,6 +228,7 @@ Typed message constants in `src/messages/types.ts`.
 - `SET_MASTER_GAIN` { gainDb }
 - `SET_VOICE_MODE` { mode: 'OFF' | 'DIALOGUE' | 'LEVELER' | 'CLARITY' }
 - `SET_BYPASS` { bypassed: boolean }
+- `SET_COMPRESSOR` { enabled: boolean }
 - `QUERY_STATE`
 
 **Service Worker → Offscreen Document:**
@@ -254,7 +255,7 @@ Use the separate typed messages above.
 - Unity gain at default (0 dB on both knobs, all bands at 0 dB, OFF mode)
 - Symmetric ±12 dB knob ranges with double-click reset
 - ZERO/RESET button resets all bands AND both knobs to 0 dB
-- Voice Enhancer with compressor on LEVELER mode
+- Voice Enhancer with independently toggleable compressor
 - Settings persistence across Chrome restart via chrome.storage.sync
 - Live FFT spectrum visualizer
 - Capture-tab-sticky behavior with hostname display
