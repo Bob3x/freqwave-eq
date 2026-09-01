@@ -3,29 +3,29 @@
 // chrome.storage.session in the service worker.
 
 export type PresetName = "OFF" | "DIALOGUE" | "LEVELER" | "CLARITY";
-export type StandardPresetName =
-    | "FLAT"
-    | "POP"
-    | "ROCK"
-    | "DISCO"
-    | "JAZZ"
-    | "CLASSICAL"
-    | "BASS_BOOST";
+export type StandardPresetName = "flat" | "bass-boost" | "rock" | "pop" | "jazz" | "vocal";
 
 export interface StandardPreset {
-    name: StandardPresetName;
-    label: string;
-    bands: readonly number[];
+    id: StandardPresetName;
+    name: string;
+    isBuiltIn: true;
+    gains: readonly number[];
+}
+
+export interface UserPreset {
+    id: string;
+    name: string;
+    isBuiltIn: false;
+    gains: number[];
 }
 
 export const STANDARD_PRESETS: readonly StandardPreset[] = [
-    { name: "FLAT", label: "Flat", bands: [0, 0, 0, 0, 0, 0, 0, 0] },
-    { name: "POP", label: "Pop", bands: [-1, 2, 3, 4, 3, 1, -1, -2] },
-    { name: "ROCK", label: "Rock", bands: [4, 3, 1, -1, -2, 1, 3, 4] },
-    { name: "DISCO", label: "Disco", bands: [4, 2, 0, -1, 1, 3, 4, 3] },
-    { name: "JAZZ", label: "Jazz", bands: [3, 2, -1, -2, -1, 1, 2, 3] },
-    { name: "CLASSICAL", label: "Classical", bands: [3, 2, 1, 0, -1, 1, 2, 3] },
-    { name: "BASS_BOOST", label: "Bass Boost", bands: [6, 5, 4, 2, 0, 0, 0, 0] }
+    { id: "flat", name: "Flat", isBuiltIn: true, gains: [0, 0, 0, 0, 0, 0, 0, 0] },
+    { id: "bass-boost", name: "Bass Boost", isBuiltIn: true, gains: [6, 4, 2, 0, 0, 0, 0, 0] },
+    { id: "rock", name: "Rock", isBuiltIn: true, gains: [4, 3, -1, -2, 1, 3, 4, 3] },
+    { id: "pop", name: "Pop", isBuiltIn: true, gains: [-1, 2, 4, 4, 2, 0, 2, 3] },
+    { id: "jazz", name: "Jazz", isBuiltIn: true, gains: [3, 2, 0, 2, 1, 3, 4, 4] },
+    { id: "vocal", name: "Vocal / Podcast", isBuiltIn: true, gains: [-3, -2, 1, 4, 4, 2, 0, -1] }
 ];
 
 export interface FreqWaveSettings {
@@ -33,7 +33,8 @@ export interface FreqWaveSettings {
     preamp: number; // dB, −12 to +12
     bands: number[]; // 8 values, dB, −12 to +12
     preset: PresetName | null; // null = custom (no named preset active)
-    eqPreset: StandardPresetName | null;
+    eqPreset: string | null;
+    customPresets: UserPreset[];
     compressorEnabled: boolean;
 }
 
@@ -44,7 +45,8 @@ export const DEFAULT_SETTINGS: FreqWaveSettings = {
     preamp: 0,
     bands: [0, 0, 0, 0, 0, 0, 0, 0],
     preset: null,
-    eqPreset: "FLAT",
+    eqPreset: "flat",
+    customPresets: [],
     compressorEnabled: false
 };
 
@@ -55,11 +57,46 @@ export function normalizeSettings(
         ...DEFAULT_SETTINGS,
         ...settings,
         bands: settings?.bands ?? DEFAULT_SETTINGS.bands,
-        eqPreset: settings?.eqPreset ?? DEFAULT_SETTINGS.eqPreset,
+        eqPreset: normalizeStandardPresetName(settings?.eqPreset),
+        customPresets: normalizeCustomPresets(settings?.customPresets),
         // Preserve the previous LEVELER behavior for settings saved before
         // the compressor received its own control.
         compressorEnabled: settings?.compressorEnabled ?? settings?.preset === "LEVELER"
     };
+}
+
+function normalizeCustomPresets(presets: UserPreset[] | undefined): UserPreset[] {
+    if (!Array.isArray(presets)) return [];
+    return presets
+        .filter(
+            (preset) =>
+                preset &&
+                typeof preset.id === "string" &&
+                typeof preset.name === "string" &&
+                Array.isArray(preset.gains) &&
+                preset.gains.length === 8
+        )
+        .map((preset) => ({
+            id: preset.id,
+            name: preset.name,
+            isBuiltIn: false,
+            gains: preset.gains.map((gain) => Math.max(-12, Math.min(12, Number(gain) || 0)))
+        }));
+}
+
+function normalizeStandardPresetName(name: string | null | undefined): string | null {
+    if (!name) return DEFAULT_SETTINGS.eqPreset;
+    const legacyNames: Record<string, StandardPresetName> = {
+        FLAT: "flat",
+        BASS_BOOST: "bass-boost",
+        ROCK: "rock",
+        POP: "pop",
+        JAZZ: "jazz"
+    };
+    return (
+        legacyNames[name] ??
+        (STANDARD_PRESETS.some((preset) => preset.id === name) ? name : DEFAULT_SETTINGS.eqPreset)
+    );
 }
 
 export async function loadSettings(): Promise<FreqWaveSettings> {

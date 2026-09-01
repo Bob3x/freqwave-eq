@@ -13,15 +13,15 @@ import type {
 import {
     DEFAULT_SETTINGS,
     loadSettings,
-    normalizeSettings,
     saveSettings,
-    STORAGE_KEY,
     STANDARD_PRESETS,
     type FreqWaveSettings,
-    type PresetName
+    type PresetName,
+    type UserPreset
 } from "../../shared/settings";
 import { BandFader } from "./BandFader";
 import { Knob } from "./Knob";
+import { PresetSelector, type Preset as SelectorPreset } from "../PresetSelector";
 import { Spectrum } from "./Spectrum";
 
 // ---------------------------------------------------------------------------
@@ -52,6 +52,7 @@ const PRESETS = {
 } as const;
 
 const PRESET_ORDER: PresetName[] = ["OFF", "DIALOGUE", "LEVELER", "CLARITY"];
+const USE_ALTERNATE_PRESET_SELECTOR = true;
 
 // ---------------------------------------------------------------------------
 // Message senders — knobs emit dB directly, no intermediate mapping
@@ -121,14 +122,9 @@ export function FreqWavePopup() {
 
     // ── Load settings from chrome.storage.sync on mount ──────────────────────
     useEffect(() => {
-        const storage = getChromeStorageSync();
-        if (!storage) return;
-
-        storage.get(STORAGE_KEY, (result) => {
-            loadSettings()
-                .then(setSettings)
-                .catch(() => setSettings(DEFAULT_SETTINGS));
-        });
+        loadSettings()
+            .then(setSettings)
+            .catch(() => setSettings(DEFAULT_SETTINGS));
     }, []);
 
     // ── Persist settings on change (debounced 300 ms) ────────────────────────
@@ -234,12 +230,13 @@ export function FreqWavePopup() {
 
     const handleZeroEQ = useCallback(() => {
         const zeros = [0, 0, 0, 0, 0, 0, 0, 0];
-        setSettings(() => ({
+        setSettings((s) => ({
+            ...(s ?? DEFAULT_SETTINGS),
             master: 0,
             preamp: 0,
             bands: zeros,
             preset: "OFF",
-            eqPreset: "FLAT",
+            eqPreset: "flat",
             compressorEnabled: false
         }));
         zeros.forEach((_, i) => sendBandGain(i, 0));
@@ -267,21 +264,57 @@ export function FreqWavePopup() {
         sendBandGain(i, db);
     }, []);
 
-    const handleStandardPresetChange = useCallback(
+    const selectedPresetId = settings?.eqPreset ?? null;
+
+    const handlePresetChange = useCallback(
         (event: React.ChangeEvent<HTMLSelectElement>) => {
-            const name = event.target.value as FreqWaveSettings["eqPreset"];
-            const selected = STANDARD_PRESETS.find((preset) => preset.name === name);
+            const id = event.target.value;
+            const selected = [...STANDARD_PRESETS, ...(settings?.customPresets ?? [])].find(
+                (preset) => preset.id === id
+            );
             if (!selected) return;
 
-            const values = [...selected.bands];
+            const values = [...selected.gains];
             setSettings((s) => ({
                 ...(s ?? DEFAULT_SETTINGS),
                 bands: values,
-                eqPreset: selected.name
+                eqPreset: selected.id
             }));
             values.forEach((db, i) => sendBandGain(i, db));
         },
-        []
+        [settings?.customPresets]
+    );
+
+    const savePreset = useCallback((name: string, gains: number[]) => {
+        const id = `custom-${Date.now()}`;
+        const customPreset: UserPreset = {
+            id,
+            name,
+            isBuiltIn: false,
+            gains: [...gains]
+        };
+        setSettings((s) => ({
+            ...(s ?? DEFAULT_SETTINGS),
+            customPresets: [...(s?.customPresets ?? []), customPreset],
+            eqPreset: id
+        }));
+    }, []);
+
+    const handleSavePreset = useCallback(() => {
+        const name = globalThis.prompt("Name this preset", "My Preset")?.trim();
+        if (name) savePreset(name, settings?.bands ?? DEFAULT_SETTINGS.bands);
+    }, [savePreset, settings?.bands]);
+
+    const handleDeletePreset = useCallback(
+        (presetId = selectedPresetId) => {
+            if (!presetId?.startsWith("custom-")) return;
+            setSettings((s) => ({
+                ...(s ?? DEFAULT_SETTINGS),
+                customPresets: (s?.customPresets ?? []).filter((preset) => preset.id !== presetId),
+                eqPreset: s?.eqPreset === presetId ? null : (s?.eqPreset ?? null)
+            }));
+        },
+        [selectedPresetId]
     );
 
     const compressorEnabled = settings?.compressorEnabled ?? false;
@@ -297,7 +330,16 @@ export function FreqWavePopup() {
     // ── Guard: don't render until settings are loaded from storage ────────────
     if (settings === null) return null;
 
-    const { master, preamp, bands, preset, eqPreset } = settings;
+    const { master, preamp, bands, preset, customPresets } = settings;
+    const selectorPresets: SelectorPreset[] = [
+        ...STANDARD_PRESETS.map((standardPreset) => ({
+            id: standardPreset.id,
+            name: standardPreset.name,
+            isBuiltIn: true,
+            gains: [...standardPreset.gains]
+        })),
+        ...customPresets
+    ];
 
     // ---------------------------------------------------------------------------
     // Badge visuals
@@ -491,45 +533,104 @@ export function FreqWavePopup() {
 
                 {/* Voice Enhancer presets */}
                 <div style={{ flex: 1, textAlign: "right" }}>
-                    <div style={{ marginBottom: "8px" }}>
-                        <label
-                            htmlFor="standard-preset"
-                            style={{
-                                display: "block",
-                                fontSize: "11px",
-                                fontWeight: 500,
-                                color: "#5d5d65",
-                                letterSpacing: ".08em",
-                                textTransform: "uppercase"
-                            }}>
-                            EQ Presets
-                        </label>
-                        <select
-                            id="standard-preset"
-                            value={eqPreset ?? ""}
-                            onChange={handleStandardPresetChange}
-                            style={{
-                                marginTop: "6px",
-                                maxWidth: "150px",
-                                padding: "5px 8px",
-                                borderRadius: "7px",
-                                border: "1px solid rgba(255,255,255,.1)",
-                                background: "#16171b",
-                                color: eqPreset ? "#d7d7dc" : "#6a6a72",
-                                fontFamily: "'Archivo', sans-serif",
-                                fontSize: "11px",
-                                cursor: "pointer"
-                            }}>
-                            <option value="" disabled>
-                                Select preset
-                            </option>
-                            {STANDARD_PRESETS.map((standardPreset) => (
-                                <option key={standardPreset.name} value={standardPreset.name}>
-                                    {standardPreset.label}
+                    {USE_ALTERNATE_PRESET_SELECTOR ? (
+                        <PresetSelector
+                            presets={selectorPresets}
+                            activePresetId={selectedPresetId ?? "custom"}
+                            currentGains={bands}
+                            onSelectPreset={(selected) => {
+                                const values = [...selected.gains];
+                                setSettings((s) => ({
+                                    ...(s ?? DEFAULT_SETTINGS),
+                                    bands: values,
+                                    eqPreset: selected.id
+                                }));
+                                values.forEach((db, i) => sendBandGain(i, db));
+                            }}
+                            onSavePreset={savePreset}
+                            onDeletePreset={handleDeletePreset}
+                        />
+                    ) : (
+                        <div style={{ marginBottom: "8px" }}>
+                            <label
+                                htmlFor="standard-preset"
+                                style={{
+                                    display: "block",
+                                    fontSize: "11px",
+                                    fontWeight: 500,
+                                    color: "#5d5d65",
+                                    letterSpacing: ".08em",
+                                    textTransform: "uppercase"
+                                }}>
+                                EQ Presets
+                            </label>
+                            <select
+                                id="standard-preset"
+                                value={selectedPresetId ?? ""}
+                                onChange={handlePresetChange}
+                                style={{
+                                    marginTop: "6px",
+                                    maxWidth: "150px",
+                                    padding: "5px 8px",
+                                    borderRadius: "7px",
+                                    border: "1px solid rgba(255,255,255,.1)",
+                                    background: "#16171b",
+                                    color: selectedPresetId ? "#d7d7dc" : "#6a6a72",
+                                    fontFamily: "'Archivo', sans-serif",
+                                    fontSize: "11px",
+                                    cursor: "pointer"
+                                }}>
+                                <option value="" disabled>
+                                    Select preset
                                 </option>
-                            ))}
-                        </select>
-                    </div>
+                                {STANDARD_PRESETS.map((standardPreset) => (
+                                    <option key={standardPreset.id} value={standardPreset.id}>
+                                        {standardPreset.name}
+                                    </option>
+                                ))}
+                                {customPresets.map((customPreset) => (
+                                    <option key={customPreset.id} value={customPreset.id}>
+                                        {customPreset.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                onClick={handleSavePreset}
+                                style={{
+                                    marginLeft: "5px",
+                                    padding: "5px 8px",
+                                    border: "1px solid rgba(255,255,255,.1)",
+                                    borderRadius: "7px",
+                                    background: "#16171b",
+                                    color: "#a4a4ac",
+                                    fontFamily: "'Archivo', sans-serif",
+                                    fontSize: "10px",
+                                    cursor: "pointer"
+                                }}>
+                                Save
+                            </button>
+                            {selectedPresetId?.startsWith("custom-") && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeletePreset()}
+                                    aria-label="Delete selected custom preset"
+                                    style={{
+                                        marginLeft: "4px",
+                                        padding: "5px 7px",
+                                        border: "1px solid rgba(255,255,255,.1)",
+                                        borderRadius: "7px",
+                                        background: "#16171b",
+                                        color: "#a4a4ac",
+                                        fontFamily: "'Archivo', sans-serif",
+                                        fontSize: "10px",
+                                        cursor: "pointer"
+                                    }}>
+                                    Delete
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <div
                         style={{
                             fontSize: "11px",
