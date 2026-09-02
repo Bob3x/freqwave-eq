@@ -4,7 +4,31 @@
     --accent: #84e80c;
 }
 
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
+}
+
+.preset-menu {
+    scrollbar-width: thin;
+    scrollbar-color: #4a4a54 transparent;
+}
+
+.preset-menu::-webkit-scrollbar {
+    width: 5px;
+}
+
+.preset-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.preset-menu::-webkit-scrollbar-thumb {
+    background: #4a4a54;
+    border: 1px solid #16171b;
+    border-radius: 3px;
+}
+
+.preset-menu::-webkit-scrollbar-thumb:hover {
+    background: #6a6a72;
 }

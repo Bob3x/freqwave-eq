@@ -97,7 +97,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                         onClick={() => setIsOpen(false)}
                                     />
 
-                                    <div className="absolute right-0 mt-1 w-48 max-h-56 overflow-y-auto bg-[#16171b] border border-white/10 rounded-lg shadow-xl z-50 text-[11px] divide-y divide-white/10">
+                                    <div className="preset-menu absolute left-0 mt-1 w-48 max-h-40 overflow-y-auto bg-[#16171b] border border-white/10 rounded-lg shadow-xl z-50 text-[11px] divide-y divide-white/10">
                                         {/* Built-in Presets Group */}
                                         <div className="py-1">
                                             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5d5d65]">
@@ -163,16 +163,17 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                 </>
                             )}
                         </div>
-
-                        {/* Quick Save Button */}
-                        <button
-                            onClick={() => setIsNaming(true)}
-                            className="flex items-center justify-center p-0.5 bg-transparent hover:text-[#84e80c] text-[#5d5d65] border-0 rounded transition-colors"
-                            title="Save Current Sliders as Preset">
-                            <Plus size={15} />
-                        </button>
                     </div>
                 )}
+                <div className="flex items-center gap-1">
+                    {/* Quick Save Button */}
+                    <button
+                        onClick={() => setIsNaming(true)}
+                        className="flex items-center justify-center p-0.5 bg-transparent hover:text-[#84e80c] text-[#5d5d65] border-0 rounded transition-colors"
+                        title="Save Current Sliders as Preset">
+                        <Plus size={15} />
+                    </button>
+                </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
