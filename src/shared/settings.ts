@@ -19,6 +19,16 @@ export interface UserPreset {
     gains: number[];
 }
 
+export interface SiteProfile {
+    master: number;
+    preamp: number;
+    bands: number[];
+    preset: PresetName | null;
+    eqPreset: string | null;
+    customPresets: UserPreset[];
+    compressorEnabled: boolean;
+}
+
 export const STANDARD_PRESETS: readonly StandardPreset[] = [
     { id: "flat", name: "Flat", isBuiltIn: true, gains: [0, 0, 0, 0, 0, 0, 0, 0] },
     { id: "bass-boost", name: "Bass Boost", isBuiltIn: true, gains: [6, 4, 2, 0, 0, 0, 0, 0] },
@@ -28,19 +38,15 @@ export const STANDARD_PRESETS: readonly StandardPreset[] = [
     { id: "vocal", name: "Vocal / Podcast", isBuiltIn: true, gains: [-3, -2, 1, 4, 4, 2, 0, -1] }
 ];
 
-export interface FreqWaveSettings {
-    master: number; // dB, −12 to +12
-    preamp: number; // dB, −12 to +12
-    bands: number[]; // 8 values, dB, −12 to +12
-    preset: PresetName | null; // null = custom (no named preset active)
-    eqPreset: string | null;
-    customPresets: UserPreset[];
-    compressorEnabled: boolean;
+export interface FreqWaveSettings extends SiteProfile {
+    globalProfile: SiteProfile;
+    siteProfileEnabled: boolean;
+    siteProfiles: Record<string, SiteProfile>;
 }
 
 export const STORAGE_KEY = "freqwave_settings";
 
-export const DEFAULT_SETTINGS: FreqWaveSettings = {
+const DEFAULT_PROFILE: SiteProfile = {
     master: 0,
     preamp: 0,
     bands: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -48,6 +54,13 @@ export const DEFAULT_SETTINGS: FreqWaveSettings = {
     eqPreset: "flat",
     customPresets: [],
     compressorEnabled: false
+};
+
+export const DEFAULT_SETTINGS: FreqWaveSettings = {
+    ...DEFAULT_PROFILE,
+    globalProfile: { ...DEFAULT_PROFILE, bands: [...DEFAULT_PROFILE.bands] },
+    siteProfileEnabled: false,
+    siteProfiles: {}
 };
 
 export function normalizeSettings(
@@ -59,9 +72,39 @@ export function normalizeSettings(
         bands: settings?.bands ?? DEFAULT_SETTINGS.bands,
         eqPreset: normalizeStandardPresetName(settings?.eqPreset),
         customPresets: normalizeCustomPresets(settings?.customPresets),
-        // Preserve the previous LEVELER behavior for settings saved before
-        // the compressor received its own control.
-        compressorEnabled: settings?.compressorEnabled ?? settings?.preset === "LEVELER"
+        compressorEnabled: settings?.compressorEnabled ?? DEFAULT_SETTINGS.compressorEnabled,
+        globalProfile: normalizeSiteProfile(settings?.globalProfile ?? settings ?? DEFAULT_PROFILE),
+        siteProfileEnabled: settings?.siteProfileEnabled ?? DEFAULT_SETTINGS.siteProfileEnabled,
+        siteProfiles: normalizeSiteProfiles(settings?.siteProfiles)
+    };
+}
+
+function normalizeSiteProfiles(
+    profiles: Record<string, SiteProfile> | undefined
+): Record<string, SiteProfile> {
+    if (!profiles || typeof profiles !== "object") return {};
+    return Object.fromEntries(
+        Object.entries(profiles)
+            .filter(
+                ([hostname, profile]) =>
+                    hostname.length > 0 && profile && typeof profile === "object"
+            )
+            .map(([hostname, profile]) => [hostname, normalizeSiteProfile(profile)])
+    );
+}
+
+function normalizeSiteProfile(profile: Partial<SiteProfile>): SiteProfile {
+    return {
+        master: Number(profile.master) || 0,
+        preamp: Number(profile.preamp) || 0,
+        bands:
+            Array.isArray(profile.bands) && profile.bands.length === 8
+                ? profile.bands.map((gain) => Math.max(-12, Math.min(12, Number(gain) || 0)))
+                : [...DEFAULT_PROFILE.bands],
+        preset: profile.preset ?? null,
+        eqPreset: profile.eqPreset ?? DEFAULT_PROFILE.eqPreset,
+        customPresets: normalizeCustomPresets(profile.customPresets),
+        compressorEnabled: profile.compressorEnabled ?? false
     };
 }
 

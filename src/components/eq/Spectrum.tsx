@@ -43,7 +43,7 @@ export function Spectrum({ bands, engineActive }: SpectrumProps) {
             const W = cw,
                 H = ch;
             if (!W) {
-                if (engineRef.current) raf = requestAnimationFrame(loop);
+                raf = requestAnimationFrame(loop);
                 return;
             }
 
@@ -100,10 +100,10 @@ export function Spectrum({ bands, engineActive }: SpectrumProps) {
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            if (engine) raf = requestAnimationFrame(loop);
+            raf = requestAnimationFrame(loop);
         };
 
-        if (engineActive) raf = requestAnimationFrame(loop);
+        raf = requestAnimationFrame(loop);
         return () => {
             cancelAnimationFrame(raf);
             window.removeEventListener("resize", resize);

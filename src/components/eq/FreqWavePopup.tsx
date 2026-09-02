@@ -17,24 +17,13 @@ import {
     STANDARD_PRESETS,
     type FreqWaveSettings,
     type PresetName,
+    type SiteProfile,
     type UserPreset
 } from "../../shared/settings";
 import { BandFader } from "./BandFader";
 import { Knob } from "./Knob";
 import { PresetSelector, type Preset as SelectorPreset } from "../PresetSelector";
 import { Spectrum } from "./Spectrum";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function truncateMiddle(str: string, max = 26): string {
-    if (str.length <= max) return str;
-    const keep = max - 1; // chars excluding the ellipsis
-    const tail = Math.floor(keep * 0.4);
-    const head = keep - tail;
-    return str.slice(0, head) + "…" + str.slice(str.length - tail);
-}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -100,6 +89,29 @@ function sendCompressor(enabled: boolean) {
     sendRuntimeMessage(msg);
 }
 
+function getSiteProfile(settings: FreqWaveSettings): SiteProfile {
+    return {
+        master: settings.master,
+        preamp: settings.preamp,
+        bands: [...settings.bands],
+        preset: settings.preset,
+        eqPreset: settings.eqPreset,
+        customPresets: [...settings.customPresets],
+        compressorEnabled: settings.compressorEnabled
+    };
+}
+
+async function getActiveHostname(): Promise<string | null> {
+    try {
+        const tabs =
+            (await globalThis.chrome?.tabs?.query({ active: true, currentWindow: true })) ?? [];
+        const [tab] = tabs;
+        return tab?.url ? new URL(tab.url).hostname || null : null;
+    } catch {
+        return null;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -107,7 +119,7 @@ function sendCompressor(enabled: boolean) {
 export function FreqWavePopup() {
     // Engine state — not persisted (capture auto-stops on Chrome restart)
     const [engineState, setEngineState] = useState<EngineState>("idle");
-    const [capturedHostname, setCapturedHostname] = useState<string | null>(null);
+    const [siteHostname, setSiteHostname] = useState<string | null>(null);
     const [statusError, setStatusError] = useState<string | null>(null);
 
     // EQ settings — null while loading from storage (avoids flash of wrong defaults)
@@ -121,8 +133,19 @@ export function FreqWavePopup() {
 
     // ── Load settings from chrome.storage.sync on mount ──────────────────────
     useEffect(() => {
-        loadSettings()
-            .then(setSettings)
+        Promise.all([loadSettings(), getActiveHostname()])
+            .then(([storedSettings, hostname]) => {
+                setSiteHostname(hostname);
+                const profile = hostname ? storedSettings.siteProfiles[hostname] : undefined;
+                if (storedSettings.siteProfileEnabled) {
+                    setSettings({
+                        ...storedSettings,
+                        ...(profile ?? storedSettings.globalProfile)
+                    });
+                } else {
+                    setSettings(storedSettings);
+                }
+            })
             .catch(() => setSettings(DEFAULT_SETTINGS));
     }, []);
 
@@ -157,10 +180,9 @@ export function FreqWavePopup() {
     // ── Engine state sync on mount ────────────────────────────────────────────
     useEffect(() => {
         const msg: QueryStateMsg = { kind: "QUERY_STATE" };
-        sendRuntimeMessage<{ state: EngineState; capturedHostname: string | null }>(msg, (res) => {
+        sendRuntimeMessage<{ state: EngineState }>(msg, (res) => {
             if (res) {
                 setEngineState(res.state);
-                setCapturedHostname(res.capturedHostname);
             }
         });
     }, []);
@@ -171,7 +193,6 @@ export function FreqWavePopup() {
             const msg = message as StateChangedMsg;
             if (msg?.kind === "STATE_CHANGED") {
                 setEngineState(msg.state);
-                setCapturedHostname(msg.capturedHostname);
             }
         };
         const runtime = globalThis.chrome?.runtime;
@@ -198,6 +219,49 @@ export function FreqWavePopup() {
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
+    const updateSettings = useCallback(
+        (updater: (current: FreqWaveSettings) => FreqWaveSettings) => {
+            setSettings((current) => {
+                const next = updater(current ?? DEFAULT_SETTINGS);
+                if (!next.siteProfileEnabled) {
+                    return { ...next, globalProfile: getSiteProfile(next) };
+                }
+                if (!siteHostname) return next;
+                return {
+                    ...next,
+                    siteProfiles: { ...next.siteProfiles, [siteHostname]: getSiteProfile(next) }
+                };
+            });
+        },
+        [siteHostname]
+    );
+
+    const handleSiteProfileToggle = useCallback(() => {
+        setSettings((current) => {
+            const base = current ?? DEFAULT_SETTINGS;
+            const enabled = !base.siteProfileEnabled;
+            if (!enabled) {
+                return { ...base, siteProfileEnabled: false, globalProfile: getSiteProfile(base) };
+            }
+            if (!siteHostname) return { ...base, siteProfileEnabled: true };
+
+            const existingProfile = base.siteProfiles[siteHostname];
+            return existingProfile
+                ? { ...base, ...existingProfile, siteProfileEnabled: true }
+                : {
+                      ...base,
+                      siteProfileEnabled: true,
+                      siteProfiles: {
+                          ...base.siteProfiles,
+                          [siteHostname]: {
+                              ...base.globalProfile,
+                              bands: [...base.globalProfile.bands]
+                          }
+                      }
+                  };
+        });
+    }, [siteHostname]);
+
     const handleBadgeClick = useCallback(() => {
         if (engineState === "starting") return;
         if (engineState === "active") {
@@ -214,22 +278,23 @@ export function FreqWavePopup() {
         }
     }, [engineState]);
 
-    const applyPreset = useCallback((name: PresetName) => {
-        const values = [...PRESETS[name]] as number[];
-        setSettings((s) => ({
-            ...(s ?? DEFAULT_SETTINGS),
-            bands: values,
-            preset: name,
-            eqPreset: s?.eqPreset ?? DEFAULT_SETTINGS.eqPreset,
-            compressorEnabled: name === "LEVELER" ? true : (s?.compressorEnabled ?? false)
-        }));
-        values.forEach((db, i) => sendBandGain(i, db));
-        if (name === "LEVELER") sendCompressor(true);
-    }, []);
+    const applyPreset = useCallback(
+        (name: PresetName) => {
+            const values = [...PRESETS[name]] as number[];
+            updateSettings((s) => ({
+                ...(s ?? DEFAULT_SETTINGS),
+                bands: values,
+                preset: name,
+                eqPreset: s?.eqPreset ?? DEFAULT_SETTINGS.eqPreset
+            }));
+            values.forEach((db, i) => sendBandGain(i, db));
+        },
+        [updateSettings]
+    );
 
     const handleZeroEQ = useCallback(() => {
         const zeros = [0, 0, 0, 0, 0, 0, 0, 0];
-        setSettings((s) => ({
+        updateSettings((s) => ({
             ...(s ?? DEFAULT_SETTINGS),
             master: 0,
             preamp: 0,
@@ -242,54 +307,71 @@ export function FreqWavePopup() {
         sendMasterGain(0);
         sendPreampGain(0);
         sendCompressor(false);
-    }, []);
+    }, [updateSettings]);
 
-    const handleMasterChange = useCallback((db: number) => {
-        setSettings((s) => ({ ...(s ?? DEFAULT_SETTINGS), master: db }));
-        sendMasterGain(db);
-    }, []);
+    const handleMasterChange = useCallback(
+        (db: number) => {
+            updateSettings((s) => ({ ...s, master: db }));
+            sendMasterGain(db);
+        },
+        [updateSettings]
+    );
 
-    const handlePreampChange = useCallback((db: number) => {
-        setSettings((s) => ({ ...(s ?? DEFAULT_SETTINGS), preamp: db }));
-        sendPreampGain(db);
-    }, []);
+    const handlePreampChange = useCallback(
+        (db: number) => {
+            updateSettings((s) => ({ ...s, preamp: db }));
+            sendPreampGain(db);
+        },
+        [updateSettings]
+    );
 
-    const handleBandChange = useCallback((i: number, db: number) => {
-        setSettings((s) => {
-            const newBands = [...(s?.bands ?? DEFAULT_SETTINGS.bands)];
-            newBands[i] = db;
-            return { ...(s ?? DEFAULT_SETTINGS), bands: newBands, preset: null, eqPreset: null };
-        });
-        sendBandGain(i, db);
-    }, []);
+    const handleBandChange = useCallback(
+        (i: number, db: number) => {
+            updateSettings((s) => {
+                const newBands = [...(s?.bands ?? DEFAULT_SETTINGS.bands)];
+                newBands[i] = db;
+                return {
+                    ...(s ?? DEFAULT_SETTINGS),
+                    bands: newBands,
+                    preset: null,
+                    eqPreset: null
+                };
+            });
+            sendBandGain(i, db);
+        },
+        [updateSettings]
+    );
 
     const selectedPresetId = settings?.eqPreset ?? null;
 
-    const savePreset = useCallback((name: string, gains: number[]) => {
-        const id = `custom-${Date.now()}`;
-        const customPreset: UserPreset = {
-            id,
-            name,
-            isBuiltIn: false,
-            gains: [...gains]
-        };
-        setSettings((s) => ({
-            ...(s ?? DEFAULT_SETTINGS),
-            customPresets: [...(s?.customPresets ?? []), customPreset],
-            eqPreset: id
-        }));
-    }, []);
+    const savePreset = useCallback(
+        (name: string, gains: number[]) => {
+            const id = `custom-${Date.now()}`;
+            const customPreset: UserPreset = {
+                id,
+                name,
+                isBuiltIn: false,
+                gains: [...gains]
+            };
+            updateSettings((s) => ({
+                ...(s ?? DEFAULT_SETTINGS),
+                customPresets: [...(s?.customPresets ?? []), customPreset],
+                eqPreset: id
+            }));
+        },
+        [updateSettings]
+    );
 
     const handleDeletePreset = useCallback(
         (presetId = selectedPresetId) => {
             if (!presetId?.startsWith("custom-")) return;
-            setSettings((s) => ({
+            updateSettings((s) => ({
                 ...(s ?? DEFAULT_SETTINGS),
                 customPresets: (s?.customPresets ?? []).filter((preset) => preset.id !== presetId),
                 eqPreset: s?.eqPreset === presetId ? null : (s?.eqPreset ?? null)
             }));
         },
-        [selectedPresetId]
+        [selectedPresetId, updateSettings]
     );
 
     const compressorEnabled = settings?.compressorEnabled ?? false;
@@ -297,10 +379,10 @@ export function FreqWavePopup() {
     const handleCompressorToggle = useCallback(() => {
         const enabled = !compressorEnabled;
         sendCompressor(enabled);
-        setSettings((s) => {
+        updateSettings((s) => {
             return { ...(s ?? DEFAULT_SETTINGS), compressorEnabled: enabled };
         });
-    }, [compressorEnabled]);
+    }, [compressorEnabled, updateSettings]);
 
     // ── Guard: don't render until settings are loaded from storage ────────────
     if (settings === null) return null;
@@ -393,7 +475,7 @@ export function FreqWavePopup() {
                     </span>
                 </div>
 
-                {/* Engine badge + meta */}
+                {/* Engine badge */}
                 <div
                     style={{
                         display: "flex",
@@ -439,24 +521,6 @@ export function FreqWavePopup() {
                         </span>
                     </div>
 
-                    <span
-                        title={capturedHostname ?? undefined}
-                        style={{
-                            fontSize: "9px",
-                            color: "#5d5d65",
-                            fontFamily: "'JetBrains Mono', monospace",
-                            paddingRight: "2px",
-                            visibility:
-                                engineState === "active" && capturedHostname ? "visible" : "hidden",
-                            maxWidth: "190px",
-                            overflow: "hidden",
-                            whiteSpace: "nowrap",
-                            display: "inline-block"
-                        }}>
-                        {capturedHostname
-                            ? `Capturing: ${truncateMiddle(capturedHostname)}`
-                            : "Capturing: –"}
-                    </span>
                     {statusError && (
                         <span
                             style={{
@@ -593,9 +657,12 @@ export function FreqWavePopup() {
                     presets={selectorPresets}
                     activePresetId={selectedPresetId ?? "custom"}
                     currentGains={bands}
+                    siteHostname={siteHostname}
+                    siteProfileEnabled={settings.siteProfileEnabled}
+                    onToggleSiteProfile={handleSiteProfileToggle}
                     onSelectPreset={(selected) => {
                         const values = [...selected.gains];
-                        setSettings((s) => ({
+                        updateSettings((s) => ({
                             ...(s ?? DEFAULT_SETTINGS),
                             bands: values,
                             eqPreset: selected.id
