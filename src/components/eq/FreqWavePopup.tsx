@@ -558,6 +558,7 @@ export function FreqWavePopup() {
                         label="Master Volume"
                         size="large"
                         defaultValue={master}
+                        engineActive={engineState === "active"}
                         onChange={handleMasterChange}
                     />
                     <div style={{ paddingTop: "18px" }}>
@@ -565,6 +566,7 @@ export function FreqWavePopup() {
                             label="Pre-Amp"
                             size="small"
                             defaultValue={preamp}
+                            engineActive={engineState === "active"}
                             onChange={handlePreampChange}
                         />
                     </div>
@@ -598,13 +600,16 @@ export function FreqWavePopup() {
                                     border: "none",
                                     background: "none",
                                     cursor: "pointer",
-                                    padding: "5px 7px",
+                                    padding: "5px 0 5px 10px",
                                     fontFamily: "'Archivo', sans-serif",
                                     fontSize: "11px",
                                     fontWeight: presetIdx === i ? 700 : 500,
                                     letterSpacing: ".07em",
                                     textTransform: "uppercase",
-                                    color: presetIdx === i ? ACCENT : "#4a4a54",
+                                    color:
+                                        presetIdx === i && engineState === "active"
+                                            ? ACCENT
+                                            : "#4a4a54",
                                     transition: "color .15s"
                                 }}>
                                 {name.charAt(0) + name.slice(1).toLowerCase()}
@@ -616,34 +621,45 @@ export function FreqWavePopup() {
                         aria-pressed={compressorEnabled}
                         onClick={handleCompressorToggle}
                         style={{
-                            border: `1px solid ${compressorEnabled ? "rgba(132,232,12,.5)" : "rgba(255,255,255,.1)"}`,
-                            borderRadius: "9px",
-                            background: compressorEnabled ? "rgba(132,232,12,.1)" : "#16171b",
-                            color: compressorEnabled ? ACCENT : "#6a6a72",
+                            border: "none",
+                            background: "none",
+                            color:
+                                compressorEnabled && engineState === "active" ? ACCENT : "#6a6a72",
                             cursor: "pointer",
-                            display: "inline-flex",
+                            display: "flex",
+                            marginLeft: "auto",
                             alignItems: "center",
-                            gap: "8px",
-                            padding: "5px 9px",
+                            gap: "6px",
+                            padding: "10px 0 0",
                             fontFamily: "'Archivo', sans-serif",
-                            fontSize: "9px",
+                            fontSize: "10px",
                             fontWeight: 600,
                             letterSpacing: ".08em",
+                            lineHeight: 1,
                             textTransform: "uppercase"
                         }}>
                         <span
                             aria-hidden="true"
                             style={{
-                                width: "6px",
-                                height: "6px",
+                                width: "5px",
+                                height: "5px",
+                                flexShrink: 0,
                                 borderRadius: "50%",
-                                background: compressorEnabled ? ACCENT : "#6a6a72",
-                                boxShadow: compressorEnabled
-                                    ? "0 0 10px rgba(132,232,12,.9)"
-                                    : "none"
+                                background:
+                                    compressorEnabled && engineState === "active"
+                                        ? ACCENT
+                                        : "#6a6a72",
+                                boxShadow:
+                                    compressorEnabled && engineState === "active"
+                                        ? "0 0 8px rgba(132,232,12,.85)"
+                                        : "none",
+                                animation:
+                                    compressorEnabled && engineState === "active"
+                                        ? "pulse 1.5s ease-in-out infinite"
+                                        : "none"
                             }}
                         />
-                        Compressor {compressorEnabled ? "On" : "Off"}
+                        Compressor
                     </button>
                 </div>
             </div>
@@ -660,6 +676,7 @@ export function FreqWavePopup() {
                     siteHostname={siteHostname}
                     siteProfileEnabled={settings.siteProfileEnabled}
                     onToggleSiteProfile={handleSiteProfileToggle}
+                    engineActive={engineState === "active"}
                     onSelectPreset={(selected) => {
                         const values = [...selected.gains];
                         updateSettings((s) => ({
@@ -691,6 +708,7 @@ export function FreqWavePopup() {
                             freq={freq}
                             value={bands[i]}
                             onChange={(db) => handleBandChange(i, db)}
+                            engineActive={engineState === "active"}
                         />
                     ))}
                 </div>

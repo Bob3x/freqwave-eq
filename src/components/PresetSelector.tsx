@@ -18,6 +18,7 @@ interface PresetSelectorProps {
     siteHostname: string | null;
     siteProfileEnabled: boolean;
     onToggleSiteProfile: () => void;
+    engineActive?: boolean;
 }
 
 export const PresetSelector: React.FC<PresetSelectorProps> = ({
@@ -29,7 +30,8 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
     onDeletePreset,
     siteHostname,
     siteProfileEnabled,
-    onToggleSiteProfile
+    onToggleSiteProfile,
+    engineActive = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isNaming, setIsNaming] = useState(false);
@@ -50,18 +52,18 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
     };
 
     return (
-        <div className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-[#0f1012] rounded-[10px] border border-white/5 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
+        <div className="flex w-full items-center justify-between gap-3 rounded-[10px] bg-[#0f1012] px-3 py-2 text-xs">
+            <div className="order-2 flex min-w-0 items-center gap-1 px-0 py-0">
                 {/* Inline Save Flow or Dropdown Trigger */}
                 {isNaming ? (
-                    <div className="flex items-center gap-1 flex-1 max-w-50">
+                    <div className="flex min-w-0 flex-1 items-center gap-1">
                         <input
                             type="text"
                             value={newPresetName}
                             onChange={(e) => setNewPresetName(e.target.value)}
                             placeholder="Preset Name..."
                             autoFocus
-                            className="w-full px-2 py-0.5 text-[11px] bg-[#16171b] border border-[#84e80c]/50 rounded text-[#f3f3f5] focus:outline-none"
+                            className="w-full min-w-0 rounded border border-[#84e80c]/50 bg-[#16171b] px-2 py-1 text-[11px] text-[#f3f3f5] focus:outline-none"
                             onKeyDown={(e) => e.key === "Enter" && handleSaveSubmit()}
                         />
                         <button
@@ -78,12 +80,13 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                         </button>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 relative">
+                    <div className="relative flex items-center gap-1">
                         {/* Main Dropdown Button */}
                         <div className="relative">
                             <button
                                 onClick={() => setIsOpen(!isOpen)}
-                                className="flex items-center gap-4 px-0 py-0 bg-transparent hover:text-[#84e80c] border-0 text-[11px] font-medium text-[#5d5d65] transition-colors min-w-32.5">
+                                title="Choose a preset"
+                                className="flex min-w-24 items-center gap-2 rounded-[5px] border-0 bg-transparent px-2 py-1 text-[11px] font-medium text-[#5d5d65] transition-colors hover:bg-white/[.04] hover:text-[#84e80c]">
                                 <span className="truncate">{displayLabel}</span>
                                 <ChevronDown size={13} className="shrink-0 text-[#5d5d65]" />
                             </button>
@@ -97,7 +100,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                                         onClick={() => setIsOpen(false)}
                                     />
 
-                                    <div className="preset-menu absolute left-0 mt-1 w-48 max-h-40 overflow-y-auto bg-[#16171b] border border-white/10 rounded-lg shadow-xl z-50 text-[11px] divide-y divide-white/10">
+                                    <div className="preset-menu absolute right-0 z-50 mt-2 w-40 max-h-40 overflow-y-auto rounded-lg bg-[#111214] text-[11px] shadow-xl divide-y divide-white/10">
                                         {/* Built-in Presets Group */}
                                         <div className="py-1">
                                             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5d5d65]">
@@ -165,18 +168,20 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                         </div>
                     </div>
                 )}
-                <div className="flex items-center gap-1">
-                    {/* Quick Save Button */}
-                    <button
-                        onClick={() => setIsNaming(true)}
-                        className="flex items-center justify-center p-0.5 bg-transparent hover:text-[#84e80c] text-[#5d5d65] border-0 rounded transition-colors"
-                        title="Save Current Sliders as Preset">
-                        <Plus size={15} />
-                    </button>
-                </div>
+                {!isNaming && (
+                    <div className="flex items-center gap-1">
+                        {/* Quick Save Button */}
+                        <button
+                            onClick={() => setIsNaming(true)}
+                            className="flex h-6 w-6 items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-[#5d5d65] transition-colors hover:bg-white/[.04] hover:text-[#84e80c]"
+                            title="Save Current Settings as Preset">
+                            <Plus size={15} />
+                        </button>
+                    </div>
+                )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="order-1 flex shrink-0 items-center gap-2">
                 <button
                     type="button"
                     role="switch"
@@ -189,29 +194,19 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                     }
                     disabled={!siteHostname}
                     onClick={onToggleSiteProfile}
-                    className="relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    className="relative h-[18px] w-[18px] shrink-0 cursor-pointer rounded-full border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{
-                        background: siteProfileEnabled ? "rgba(132,232,12,.22)" : "#1a1b1f",
-                        borderColor: siteProfileEnabled
-                            ? "rgba(132,232,12,.65)"
-                            : "rgba(255,255,255,.16)",
-                        boxShadow: siteProfileEnabled
-                            ? "0 0 10px rgba(132,232,12,.16)"
-                            : "inset 0 1px 3px rgba(0,0,0,.7)"
-                    }}>
-                    <span
-                        aria-hidden="true"
-                        className="absolute top-0.5 h-3.5 w-3.5 rounded-full transition-transform"
-                        style={{
-                            left: "2px",
-                            background: siteProfileEnabled ? "#84e80c" : "#696b73",
-                            boxShadow: siteProfileEnabled
-                                ? "0 0 7px rgba(132,232,12,.8)"
-                                : "0 1px 2px rgba(0,0,0,.7)",
-                            transform: siteProfileEnabled ? "translateX(16px)" : "translateX(0)"
-                        }}
-                    />
-                </button>
+                        background: "#25272c",
+                        borderColor: "rgba(0,0,0,.7)",
+                        boxShadow:
+                            siteProfileEnabled && engineActive
+                                ? "0 0 9px rgba(132,232,12,.28), inset 0 1px 1px rgba(235,255,190,.65), inset 0 -2px 3px rgba(44,104,0,.75), 0 2px 3px rgba(0,0,0,.7)"
+                                : "inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 3px rgba(0,0,0,.8), 0 2px 3px rgba(0,0,0,.65)",
+                        backgroundImage:
+                            siteProfileEnabled && engineActive
+                                ? "radial-gradient(circle at 50% 44%, rgba(210,255,141,.95) 0%, rgba(132,232,12,.7) 18%, rgba(132,232,12,.24) 48%, rgba(31,32,37,0) 78%), radial-gradient(circle at 35% 28%, #555860 0%, #303239 42%, #17181c 100%)"
+                                : "radial-gradient(circle at 35% 28%, #686b73 0%, #494b53 20%, #303239 56%, #17181c 100%)"
+                    }}></button>
                 <div className="text-right leading-none">
                     <div className="text-[9px] font-semibold uppercase tracking-wider text-[#5d5d65]">
                         Site Profile

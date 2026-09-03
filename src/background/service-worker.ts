@@ -5,7 +5,7 @@ import type {
     EngineState,
     InitCaptureMsg,
     StateChangedMsg,
-    SwToOffscreenMessage,
+    SwToOffscreenMessage
 } from "../messages/types";
 
 // ---------------------------------------------------------------------------
@@ -43,8 +43,16 @@ interface PersistedState {
 }
 
 function persistState(): void {
-    const data: PersistedState = { engineState, capturedTabId, capturedHostname, capturedWindowId, savedWindowState };
-    chrome.storage.session.set({ [SESSION_KEY]: data }).catch(() => { /* ok */ });
+    const data: PersistedState = {
+        engineState,
+        capturedTabId,
+        capturedHostname,
+        capturedWindowId,
+        savedWindowState
+    };
+    chrome.storage.session.set({ [SESSION_KEY]: data }).catch(() => {
+        /* ok */
+    });
 }
 
 // Restore is awaited before processing START_CAPTURE / QUERY_STATE so that
@@ -67,7 +75,9 @@ const stateRestored: Promise<void> = chrome.storage.session
         // If we were active, the offscreen doc is still alive.
         if (engineState === "active") offscreenDocCreated = true;
     })
-    .catch(() => { /* storage unavailable — start fresh */ });
+    .catch(() => {
+        /* storage unavailable — start fresh */
+    });
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,9 +88,11 @@ function broadcastState() {
         kind: "STATE_CHANGED",
         state: engineState,
         capturedTabId,
-        capturedHostname,
+        capturedHostname
     };
-    chrome.runtime.sendMessage(msg).catch(() => { /* no popup open */ });
+    chrome.runtime.sendMessage(msg).catch(() => {
+        /* no popup open */
+    });
     persistState();
 }
 
@@ -100,7 +112,7 @@ async function ensureOffscreenDocument(): Promise<void> {
         await chrome.offscreen.createDocument({
             url: offscreenUrl,
             reasons: [chrome.offscreen.Reason.USER_MEDIA],
-            justification: "Capture and process tab audio via Web Audio API.",
+            justification: "Capture and process tab audio via Web Audio API."
         });
 
         await offscreenReadyPromise;
@@ -119,106 +131,104 @@ function sendToOffscreen(msg: SwToOffscreenMessage) {
 // Message handler
 // ---------------------------------------------------------------------------
 
-chrome.runtime.onMessage.addListener(
-    (message: AnyMessage, _sender, sendResponse) => {
-        const kind = (message as { kind: string }).kind;
+chrome.runtime.onMessage.addListener((message: AnyMessage, _sender, sendResponse) => {
+    const kind = (message as { kind: string }).kind;
 
-        switch (kind) {
-            // ------------------------------------------------------------------
-            case "OFFSCREEN_READY":
-                offscreenReadyResolve?.();
-                offscreenReadyResolve = null;
-                return false;
+    switch (kind) {
+        // ------------------------------------------------------------------
+        case "OFFSCREEN_READY":
+            offscreenReadyResolve?.();
+            offscreenReadyResolve = null;
+            return false;
 
-            // ------------------------------------------------------------------
-            case "ENGINE_STOPPED":
-                engineState = "idle";
-                capturedTabId = null;
-                capturedHostname = null;
-                capturedWindowId = null;
-                savedWindowState = null;
-                broadcastState();
-                return false;
+        // ------------------------------------------------------------------
+        case "ENGINE_STOPPED":
+            engineState = "idle";
+            capturedTabId = null;
+            capturedHostname = null;
+            capturedWindowId = null;
+            savedWindowState = null;
+            broadcastState();
+            return false;
 
-            // ------------------------------------------------------------------
-            case "START_CAPTURE": {
-                (async () => {
-                    await stateRestored;
+        // ------------------------------------------------------------------
+        case "START_CAPTURE": {
+            (async () => {
+                await stateRestored;
 
-                    if (engineState !== "idle") {
-                        sendResponse({
-                            ok: false,
-                            error: `Engine is active on ${capturedHostname ?? "another tab"}. Stop it first.`,
-                        });
-                        return;
-                    }
+                if (engineState !== "idle") {
+                    sendResponse({
+                        ok: false,
+                        error: `Engine is active on ${capturedHostname ?? "another tab"}. Stop it first.`
+                    });
+                    return;
+                }
 
-                    try {
-                        const [activeTab] = await chrome.tabs.query({
-                            active: true,
-                            currentWindow: true,
-                        });
-                        if (!activeTab?.id) throw new Error("No active tab.");
+                try {
+                    const [activeTab] = await chrome.tabs.query({
+                        active: true,
+                        currentWindow: true
+                    });
+                    if (!activeTab?.id) throw new Error("No active tab.");
 
-                        engineState = "starting";
-                        capturedTabId = activeTab.id;
-                        capturedHostname = activeTab.url
-                            ? new URL(activeTab.url).hostname
-                            : null;
-                        capturedWindowId = activeTab.windowId ?? null;
-                        broadcastState();
+                    engineState = "starting";
+                    capturedTabId = activeTab.id;
+                    capturedHostname = activeTab.url ? new URL(activeTab.url).hostname : null;
+                    capturedWindowId = activeTab.windowId ?? null;
+                    broadcastState();
 
-                        const streamId = await chrome.tabCapture.getMediaStreamId({
-                            targetTabId: activeTab.id,
-                        });
+                    const streamId = await chrome.tabCapture.getMediaStreamId({
+                        targetTabId: activeTab.id
+                    });
 
-                        await ensureOffscreenDocument();
+                    await ensureOffscreenDocument();
 
-                        const initMsg: InitCaptureMsg = { kind: "INIT_CAPTURE", streamId };
-                        sendToOffscreen(initMsg);
+                    const initMsg: InitCaptureMsg = { kind: "INIT_CAPTURE", streamId };
+                    sendToOffscreen(initMsg);
 
-                        engineState = "active";
-                        broadcastState();
-                        sendResponse({ ok: true });
-                    } catch (err) {
-                        console.error("[SW] START_CAPTURE failed:", err);
-                        engineState = "idle";
-                        capturedTabId = null;
-                        capturedHostname = null;
-                        broadcastState();
-                        sendResponse({ ok: false, error: String(err) });
-                    }
-                })();
-                return true; // keep channel open for async sendResponse
-            }
-
-            // ------------------------------------------------------------------
-            case "STOP_CAPTURE":
-                sendToOffscreen({ kind: "TEARDOWN_CAPTURE" });
-                engineState = "idle";
-                capturedTabId = null;
-                capturedHostname = null;
-                capturedWindowId = null;
-                savedWindowState = null;
-                broadcastState();
-                sendResponse({ ok: true });
-                return false;
-
-            // ------------------------------------------------------------------
-            case "QUERY_STATE": {
-                (async () => {
-                    await stateRestored;
-                    sendResponse({ state: engineState, capturedTabId, capturedHostname });
-                })();
-                return true; // async
-            }
-
-            // ------------------------------------------------------------------
-            default:
-                return false;
+                    engineState = "active";
+                    broadcastState();
+                    sendResponse({ ok: true });
+                } catch (err) {
+                    console.error("[SW] START_CAPTURE failed:", err);
+                    engineState = "idle";
+                    capturedTabId = null;
+                    capturedHostname = null;
+                    capturedWindowId = null;
+                    savedWindowState = null;
+                    broadcastState();
+                    sendResponse({ ok: false, error: String(err) });
+                }
+            })();
+            return true; // keep channel open for async sendResponse
         }
+
+        // ------------------------------------------------------------------
+        case "STOP_CAPTURE":
+            sendToOffscreen({ kind: "TEARDOWN_CAPTURE" });
+            engineState = "idle";
+            capturedTabId = null;
+            capturedHostname = null;
+            capturedWindowId = null;
+            savedWindowState = null;
+            broadcastState();
+            sendResponse({ ok: true });
+            return false;
+
+        // ------------------------------------------------------------------
+        case "QUERY_STATE": {
+            (async () => {
+                await stateRestored;
+                sendResponse({ state: engineState, capturedTabId, capturedHostname });
+            })();
+            return true; // async
+        }
+
+        // ------------------------------------------------------------------
+        default:
+            return false;
     }
-);
+});
 
 // ---------------------------------------------------------------------------
 // Fullscreen bridge
@@ -227,10 +237,16 @@ chrome.runtime.onMessage.addListener(
 // the capturing extension must call chrome.windows.update to drive it.
 // ---------------------------------------------------------------------------
 
-chrome.tabCapture.onStatusChanged.addListener(async (info) => {
+let fullscreenChangeQueue = Promise.resolve();
+
+chrome.tabCapture.onStatusChanged.addListener((info) => {
     if (info.status !== "active") return;
     if (info.tabId !== capturedTabId) return;
-    await handleFullscreenChange(info.fullscreen ?? false);
+    fullscreenChangeQueue = fullscreenChangeQueue
+        .then(() => handleFullscreenChange(info.fullscreen ?? false))
+        .catch(() => {
+            /* keep later fullscreen events flowing */
+        });
 });
 
 async function handleFullscreenChange(fullscreen: boolean): Promise<void> {
@@ -245,7 +261,9 @@ async function handleFullscreenChange(fullscreen: boolean): Promise<void> {
             }
         } else if (savedWindowState !== null) {
             // Only restore if we drove the fullscreen entry
-            await chrome.windows.update(capturedWindowId, { state: savedWindowState as chrome.windows.WindowState });
+            await chrome.windows.update(capturedWindowId, {
+                state: savedWindowState as chrome.windows.WindowState
+            });
             savedWindowState = null;
             persistState();
         }

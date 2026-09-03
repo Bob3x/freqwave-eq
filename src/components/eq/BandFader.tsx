@@ -6,19 +6,22 @@ interface BandFaderProps {
     freq: string;
     value: number; // dB, −12 to +12
     onChange: (db: number) => void;
+    engineActive?: boolean;
 }
 
-export function BandFader({ freq, value, onChange }: BandFaderProps) {
+export function BandFader({ freq, value, onChange, engineActive = false }: BandFaderProps) {
     const [hovered, setHovered] = useState(false);
 
     const pct = (value + 12) / 24;
     const lo = Math.min(pct, 0.5);
     const hi = Math.max(pct, 0.5);
     const dbText = (value > 0 ? "+" : "") + value.toFixed(1);
-    const dbColor = Math.abs(value) < 0.05 ? "#5d5d65" : ACCENT;
+    const dbColor = Math.abs(value) < 0.05 ? "#5d5d65" : engineActive ? ACCENT : "#687044";
 
-    // Green intensity: 40% at 0 dB, 100% at ±12 dB
-    const intensity = 0.4 + 0.6 * Math.min(1, Math.abs(value) / 12);
+    // Keep a faint trace of the EQ curve visible while the engine is off.
+    const intensity =
+        (engineActive ? 0.4 : 0.12) +
+        (engineActive ? 0.6 : 0.18) * Math.min(1, Math.abs(value) / 12);
     const fillColor = `rgba(132,232,12,${intensity.toFixed(2)})`;
     const glowColor = `rgba(132,232,12,${(intensity * 0.45).toFixed(2)})`;
 
@@ -75,7 +78,7 @@ export function BandFader({ freq, value, onChange }: BandFaderProps) {
                 style={{
                     position: "relative",
                     width: "34px",
-                    height: "78px",
+                    height: "100px",
                     margin: "6px 0",
                     cursor: "pointer",
                     touchAction: "none",
