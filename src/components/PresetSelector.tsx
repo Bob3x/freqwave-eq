@@ -86,7 +86,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                             <button
                                 onClick={() => setIsOpen(!isOpen)}
                                 title="Choose a preset"
-                                className="flex min-w-24 items-center gap-2 rounded-[5px] border-0 bg-transparent px-2 py-1 text-[11px] font-medium text-[#5d5d65] transition-colors hover:bg-white/[.04] hover:text-[#84e80c]">
+                                className="flex min-w-24 items-center gap-2 rounded-[5px] border-0 bg-transparent px-2 py-1 text-[11px] font-medium text-[#5d5d65] transition-colors hover:bg-white/4 hover:text-[#84e80c]">
                                 <span className="truncate">{displayLabel}</span>
                                 <ChevronDown size={13} className="shrink-0 text-[#5d5d65]" />
                             </button>
@@ -173,7 +173,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                         {/* Quick Save Button */}
                         <button
                             onClick={() => setIsNaming(true)}
-                            className="flex h-6 w-6 items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-[#5d5d65] transition-colors hover:bg-white/[.04] hover:text-[#84e80c]"
+                            className="flex h-6 w-6 items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-[#5d5d65] transition-colors hover:bg-white/4 hover:text-[#84e80c]"
                             title="Save Current Settings as Preset">
                             <Plus size={15} />
                         </button>
@@ -194,7 +194,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                     }
                     disabled={!siteHostname}
                     onClick={onToggleSiteProfile}
-                    className="relative h-[18px] w-[18px] shrink-0 cursor-pointer rounded-full border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="relative h-4.5 w-4.5 shrink-0 cursor-pointer rounded-full border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{
                         background: "#25272c",
                         borderColor: "rgba(0,0,0,.7)",
