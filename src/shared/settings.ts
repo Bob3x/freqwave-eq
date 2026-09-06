@@ -31,10 +31,10 @@ export interface SiteProfile {
 
 export const STANDARD_PRESETS: readonly StandardPreset[] = [
     { id: "flat", name: "Flat", isBuiltIn: true, gains: [0, 0, 0, 0, 0, 0, 0, 0] },
-    { id: "bass-boost", name: "Bass Boost", isBuiltIn: true, gains: [6, 4, 2, 0, 0, 0, 0, 0] },
     { id: "rock", name: "Rock", isBuiltIn: true, gains: [4, 3, -1, -2, 1, 3, 4, 3] },
     { id: "pop", name: "Pop", isBuiltIn: true, gains: [-1, 2, 4, 4, 2, 0, 2, 3] },
     { id: "jazz", name: "Jazz", isBuiltIn: true, gains: [3, 2, 0, 2, 1, 3, 4, 4] },
+    { id: "bass-boost", name: "Bass Boost", isBuiltIn: true, gains: [6, 4, 2, 0, 0, 0, 0, 0] },
     { id: "vocal", name: "Vocal / Podcast", isBuiltIn: true, gains: [-3, -2, 1, 4, 4, 2, 0, -1] }
 ];
 
@@ -136,6 +136,7 @@ function normalizeStandardPresetName(name: string | null | undefined): string | 
         POP: "pop",
         JAZZ: "jazz"
     };
+    if (name.startsWith("custom-")) return name;
     return (
         legacyNames[name] ??
         (STANDARD_PRESETS.some((preset) => preset.id === name) ? name : DEFAULT_SETTINGS.eqPreset)

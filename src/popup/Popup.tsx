@@ -7,7 +7,7 @@ export default function Popup() {
                 {
                     "--accent": "#84e80c",
                     width: "560px",
-                    height: "570px"
+                    height: "600px"
                 } as React.CSSProperties
             }>
             <FreqWavePopup />

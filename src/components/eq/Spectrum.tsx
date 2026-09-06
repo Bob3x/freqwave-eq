@@ -114,7 +114,8 @@ export function Spectrum({ bands, engineActive }: SpectrumProps) {
         <div
             style={{
                 position: "relative",
-                height: "84px",
+                height: "68px",
+                flexShrink: 0,
                 borderRadius: "14px",
                 overflow: "hidden",
                 background: "#0c0d10",

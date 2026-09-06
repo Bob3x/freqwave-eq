@@ -52,7 +52,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
     };
 
     return (
-        <div className="flex w-full items-center justify-between gap-3 rounded-[10px] bg-[#0f1012] px-3 py-2 text-xs">
+        <div className="flex w-full items-center justify-between gap-3 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0f1012] px-3 py-1 text-xs">
             <div className="order-2 flex min-w-0 items-center gap-1 px-0 py-0">
                 {/* Inline Save Flow or Dropdown Trigger */}
                 {isNaming ? (
@@ -200,15 +200,27 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                         borderColor: "rgba(0,0,0,.7)",
                         boxShadow:
                             siteProfileEnabled && engineActive
-                                ? "0 0 9px rgba(132,232,12,.28), inset 0 1px 1px rgba(235,255,190,.65), inset 0 -2px 3px rgba(44,104,0,.75), 0 2px 3px rgba(0,0,0,.7)"
-                                : "inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 3px rgba(0,0,0,.8), 0 2px 3px rgba(0,0,0,.65)",
-                        backgroundImage:
-                            siteProfileEnabled && engineActive
-                                ? "radial-gradient(circle at 50% 44%, rgba(210,255,141,.95) 0%, rgba(132,232,12,.7) 18%, rgba(132,232,12,.24) 48%, rgba(31,32,37,0) 78%), radial-gradient(circle at 35% 28%, #555860 0%, #303239 42%, #17181c 100%)"
-                                : "radial-gradient(circle at 35% 28%, #686b73 0%, #494b53 20%, #303239 56%, #17181c 100%)"
-                    }}></button>
-                <div className="text-right leading-none">
-                    <div className="text-[9px] font-semibold uppercase tracking-wider text-[#5d5d65]">
+                                ? "inset 0 1px 1px rgba(255,255,255,.12), inset 0 -2px 3px rgba(0,0,0,.8), 0 2px 3px rgba(0,0,0,.65)"
+                                : "inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 3px rgba(0,0,0,.8), 0 2px 3px rgba(0,0,0,.65)"
+                    }}>
+                    {siteProfileEnabled && engineActive && (
+                        <span
+                            aria-hidden="true"
+                            style={{
+                                position: "absolute",
+                                top: "50%",
+                                left: "50%",
+                                width: "4.4px",
+                                height: "4.4px",
+                                borderRadius: "50%",
+                                background: "#84e80c",
+                                transform: "translate(-50%, -50%)"
+                            }}
+                        />
+                    )}
+                </button>
+                <div className="text-right leading-none pt-1 pb-1">
+                    <div className="text-[8.5px] font-semibold uppercase tracking-wider text-[#5d5d65]">
                         Site Profile
                     </div>
                     <div

@@ -33,12 +33,12 @@ const ACCENT = "var(--accent, #84e80c)";
 
 const FREQS = ["32Hz", "64Hz", "125Hz", "250Hz", "500Hz", "1kHz", "4kHz", "8kHz"] as const;
 
-const PRESETS = {
+const VOICE_CURVES: Record<PresetName, number[]> = {
     OFF: [0, 0, 0, 0, 0, 0, 0, 0],
     DIALOGUE: [-3, -2, 0, 2, 3, 4, 2, 0],
     LEVELER: [1, 1, 1, 0, 0, 1, 1, 1],
     CLARITY: [-1, 0, 1, 2, 3, 5, 6, 4]
-} as const;
+};
 
 const PRESET_ORDER: PresetName[] = ["OFF", "DIALOGUE", "LEVELER", "CLARITY"];
 
@@ -121,6 +121,7 @@ export function FreqWavePopup() {
     const [engineState, setEngineState] = useState<EngineState>("idle");
     const [siteHostname, setSiteHostname] = useState<string | null>(null);
     const [statusError, setStatusError] = useState<string | null>(null);
+    const [voiceMode, setVoiceMode] = useState<PresetName>("OFF");
 
     // EQ settings — null while loading from storage (avoids flash of wrong defaults)
     const [settings, setSettings] = useState<FreqWaveSettings | null>(() =>
@@ -130,6 +131,7 @@ export function FreqWavePopup() {
     // Storage persistence refs
     const settingsLoadedRef = useRef(false); // skip write-back on the initial load
     const latestSettings = useRef<FreqWaveSettings | null>(null); // for flush-on-close
+    const basePresetIdRef = useRef<string | null>(null);
 
     // ── Load settings from chrome.storage.sync on mount ──────────────────────
     useEffect(() => {
@@ -138,15 +140,24 @@ export function FreqWavePopup() {
                 setSiteHostname(hostname);
                 const profile = hostname ? storedSettings.siteProfiles[hostname] : undefined;
                 if (storedSettings.siteProfileEnabled) {
-                    setSettings({
+                    const effectiveSettings = {
                         ...storedSettings,
                         ...(profile ?? storedSettings.globalProfile)
-                    });
+                    };
+                    setSettings(effectiveSettings);
+                    setVoiceMode(effectiveSettings.preset ?? "OFF");
+                    basePresetIdRef.current = effectiveSettings.eqPreset;
                 } else {
                     setSettings(storedSettings);
+                    setVoiceMode(storedSettings.preset ?? "OFF");
+                    basePresetIdRef.current = storedSettings.eqPreset;
                 }
             })
-            .catch(() => setSettings(DEFAULT_SETTINGS));
+            .catch(() => {
+                setSettings(DEFAULT_SETTINGS);
+                setVoiceMode("OFF");
+                basePresetIdRef.current = DEFAULT_SETTINGS.eqPreset;
+            });
     }, []);
 
     // ── Persist settings on change (debounced 300 ms) ────────────────────────
@@ -280,20 +291,55 @@ export function FreqWavePopup() {
 
     const applyPreset = useCallback(
         (name: PresetName) => {
-            const values = [...PRESETS[name]] as number[];
-            updateSettings((s) => ({
-                ...(s ?? DEFAULT_SETTINGS),
-                bands: values,
-                preset: name,
-                eqPreset: s?.eqPreset ?? DEFAULT_SETTINGS.eqPreset
-            }));
+            const compressorEnabled = name !== "OFF";
+            setVoiceMode(name);
+            let values = [...VOICE_CURVES[name]];
+            let restoredPresetId: string | null = null;
+            if (name === "OFF") {
+                const current = latestSettings.current ?? settings ?? DEFAULT_SETTINGS;
+                const basePresetId = basePresetIdRef.current ?? current.eqPreset;
+                const basePreset = [...STANDARD_PRESETS, ...current.customPresets].find(
+                    (preset) => preset.id === basePresetId
+                );
+                if (basePreset) {
+                    values = [...basePreset.gains];
+                    restoredPresetId = basePreset.id;
+                    basePresetIdRef.current = basePreset.id;
+                }
+            }
+            updateSettings((s) => {
+                const current = s ?? DEFAULT_SETTINGS;
+                if (name !== "OFF" && current.eqPreset) {
+                    basePresetIdRef.current = current.eqPreset;
+                }
+
+                if (name === "OFF") {
+                    return {
+                        ...current,
+                        bands: values,
+                        preset: "OFF",
+                        eqPreset: restoredPresetId,
+                        compressorEnabled
+                    };
+                }
+
+                return {
+                    ...current,
+                    bands: values,
+                    preset: name,
+                    eqPreset: null,
+                    compressorEnabled
+                };
+            });
             values.forEach((db, i) => sendBandGain(i, db));
+            sendCompressor(compressorEnabled);
         },
-        [updateSettings]
+        [settings, updateSettings]
     );
 
     const handleZeroEQ = useCallback(() => {
         const zeros = [0, 0, 0, 0, 0, 0, 0, 0];
+        basePresetIdRef.current = "flat";
         updateSettings((s) => ({
             ...(s ?? DEFAULT_SETTINGS),
             master: 0,
@@ -327,6 +373,8 @@ export function FreqWavePopup() {
 
     const handleBandChange = useCallback(
         (i: number, db: number) => {
+            setVoiceMode("OFF");
+            basePresetIdRef.current = null;
             updateSettings((s) => {
                 const newBands = [...(s?.bands ?? DEFAULT_SETTINGS.bands)];
                 newBands[i] = db;
@@ -334,10 +382,12 @@ export function FreqWavePopup() {
                     ...(s ?? DEFAULT_SETTINGS),
                     bands: newBands,
                     preset: null,
-                    eqPreset: null
+                    eqPreset: null,
+                    compressorEnabled: false
                 };
             });
             sendBandGain(i, db);
+            sendCompressor(false);
         },
         [updateSettings]
     );
@@ -356,8 +406,12 @@ export function FreqWavePopup() {
             updateSettings((s) => ({
                 ...(s ?? DEFAULT_SETTINGS),
                 customPresets: [...(s?.customPresets ?? []), customPreset],
-                eqPreset: id
+                eqPreset: id,
+                preset: "OFF",
+                compressorEnabled: false
             }));
+            setVoiceMode("OFF");
+            sendCompressor(false);
         },
         [updateSettings]
     );
@@ -387,7 +441,7 @@ export function FreqWavePopup() {
     // ── Guard: don't render until settings are loaded from storage ────────────
     if (settings === null) return null;
 
-    const { master, preamp, bands, preset, customPresets } = settings;
+    const { master, preamp, bands, customPresets } = settings;
     const selectorPresets: SelectorPreset[] = [
         ...STANDARD_PRESETS.map((standardPreset) => ({
             id: standardPreset.id,
@@ -425,7 +479,7 @@ export function FreqWavePopup() {
     // Preset pill position
     // ---------------------------------------------------------------------------
 
-    const presetIdx = PRESET_ORDER.indexOf(preset ?? "OFF");
+    const presetIdx = PRESET_ORDER.indexOf(voiceMode);
 
     // ---------------------------------------------------------------------------
     // Render
@@ -679,12 +733,17 @@ export function FreqWavePopup() {
                     engineActive={engineState === "active"}
                     onSelectPreset={(selected) => {
                         const values = [...selected.gains];
+                        basePresetIdRef.current = selected.id;
+                        setVoiceMode("OFF");
                         updateSettings((s) => ({
                             ...(s ?? DEFAULT_SETTINGS),
                             bands: values,
-                            eqPreset: selected.id
+                            eqPreset: selected.id,
+                            preset: "OFF",
+                            compressorEnabled: false
                         }));
                         values.forEach((db, i) => sendBandGain(i, db));
+                        sendCompressor(false);
                     }}
                     onSavePreset={savePreset}
                     onDeletePreset={handleDeletePreset}
