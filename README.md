@@ -5,11 +5,13 @@
 
 ---
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.0.0-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/freqwave-eq/emikokoknlgeiloipjheoafjjeoicjap)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.1.0-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/freqwave-eq/emikokoknlgeiloipjheoafjjeoicjap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-orange?logo=buymeacoffee)](https://buymeacoffee.com/borislavginov)
 
 ---
+
+**Current release:** `v1.1.0`
 
 ## Quick Links
 
@@ -23,9 +25,18 @@
 
 - **8-Band Parametric Equalizer:** Precise frequency adjustments across sub-bass, midrange, and treble ranges.
 - **Voice Enhancement Modes:** Specialized DSP presets (`DIALOGUE`, `LEVELER`, `CLARITY`) designed to clean up muffled or unbalanced podcast and video audio.
+- **Custom Presets:** Save, select, and delete your own EQ curves alongside the built-in presets.
+- **Per-Site Profiles:** Remember a preferred EQ profile for each supported tab hostname.
+- **Independent Compressor:** Enable dynamic range compression with any voice enhancement mode, including `OFF`.
 - **Real-Time Spectrum Visualizer:** Live audio frequency response display inside the popup.
 - **State Persistence:** Settings are synced across browser restarts and active tabs via `chrome.storage.sync`.
 - **Offscreen Processing:** Built on Manifest V3 using an isolated Web Audio API offscreen document for smooth performance.
+
+### What's New in v1.1.0
+
+- Save and manage custom presets.
+- Store separate EQ settings for different websites.
+- Toggle the compressor independently from the voice enhancement mode.
 
 ---
 
@@ -48,13 +59,13 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/d
 
 1. Clone the repository:
     ```bash
-    git clone [https://github.com/Bob3x/freqwave-eq.git](https://github.com/Bob3x/freqwave-eq.git)
+    git clone https://github.com/Bob3x/freqwave-eq.git
     cd freqwave-eq
     ```
 2. Install dependencies & build:
     ```bash
     npm install
-    npm build
+    npm run build
     ```
 3. Load in Chrome:
 
@@ -69,6 +80,9 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/d
 - `npm run lint` — run ESLint
 
 ## Architecture & Project Structure
+
+See [Architecture](docs/ARCHITECTURE.md) for the runtime model, audio graph,
+capture lifecycle, and release checklist.
 
 - `src/popup/` — popup UI entry and components
 - `src/components/eq/` — EQ UI components (BandFader, Knob, Spectrum, etc.)

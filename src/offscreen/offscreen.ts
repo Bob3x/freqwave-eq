@@ -1,7 +1,7 @@
 import type { EngineStoppedMsg, OffscreenReadyMsg, SwToOffscreenMessage } from "../messages/types";
 
 // ---------------------------------------------------------------------------
-// Band configuration (locked per CLAUDE.md)
+// Band configuration (part of the audio processing contract)
 // ---------------------------------------------------------------------------
 
 const BANDS: { frequency: number; type: BiquadFilterType }[] = [
