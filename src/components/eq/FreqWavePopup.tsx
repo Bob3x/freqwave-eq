@@ -805,7 +805,7 @@ export function FreqWavePopup() {
                         }}>
                         FreqWave EQ
                     </a>
-                    <span style={{ margin: "0 8px" }}>v1.0.1</span>
+                    <span style={{ margin: "0 8px" }}>v1.1.0</span>
                     <a
                         href="https://www.buymeacoffee.com/borislavginov"
                         target="_blank"
